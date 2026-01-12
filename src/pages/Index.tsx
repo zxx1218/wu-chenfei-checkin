@@ -7,7 +7,7 @@ import { useRecords } from '@/hooks/useRecords';
 import { CalendarDays } from 'lucide-react';
 
 const Index = () => {
-  const { records, allRecords, loading, addBumpRecord, addSafeRecord, deleteRecord, setFilterDateRange } = useRecords();
+  const { records, allRecords, loading, addBumpRecord, addSafeRecord, deleteRecord, setFilterDateRange, hasSafeRecordToday } = useRecords();
   
   const today = new Date().toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -32,7 +32,7 @@ const Index = () => {
 
         {/* Check-in Buttons */}
         <section className="mb-12">
-          <CheckInButtons onBump={addBumpRecord} onSafe={addSafeRecord} />
+          <CheckInButtons onBump={addBumpRecord} onSafe={addSafeRecord} hasSafeRecordToday={hasSafeRecordToday} />
         </section>
 
         {/* Stats Section */}

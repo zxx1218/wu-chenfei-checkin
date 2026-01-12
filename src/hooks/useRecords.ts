@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { BumpRecord, SeverityLevel } from '@/types/record';
 import { supabase } from '@/integrations/supabase/client';
+import { format, startOfDay, endOfDay } from 'date-fns';
 
 export function useRecords() {
   const [allRecords, setAllRecords] = useState<BumpRecord[]>([]);
@@ -9,6 +10,17 @@ export function useRecords() {
     from: undefined,
     to: undefined,
   });
+
+  // Get today's date string in Chinese format
+  const getTodayDateString = () => {
+    return new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  // Check if user has already checked in safe today
+  const hasSafeRecordToday = useMemo(() => {
+    const todayStr = getTodayDateString();
+    return allRecords.some(record => record.type === 'safe' && record.date === todayStr);
+  }, [allRecords]);
 
   // Fetch all records from database
   const fetchRecords = async () => {
@@ -63,6 +75,32 @@ export function useRecords() {
     });
   }, [allRecords, dateRange]);
 
+  // Check and add auto safe record at midnight
+  const checkAndAddAutoSafeRecord = async () => {
+    const now = new Date();
+    const todayStr = getTodayDateString();
+    
+    // Check if there's any record for today
+    const hasRecordToday = allRecords.some(record => record.date === todayStr);
+    
+    if (!hasRecordToday && now.getHours() === 0 && now.getMinutes() < 5) {
+      // Auto add safe record
+      const newRecord = {
+        date: todayStr,
+        time: '00:00',
+        type: 'safe' as const,
+      };
+
+      const { error } = await supabase
+        .from('bump_records')
+        .insert(newRecord);
+
+      if (error) {
+        console.error('Error adding auto safe record:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchRecords();
 
@@ -72,7 +110,7 @@ export function useRecords() {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'bump_records',
         },
@@ -82,8 +120,17 @@ export function useRecords() {
       )
       .subscribe();
 
+    // Check for auto safe record every minute
+    const autoCheckInterval = setInterval(() => {
+      checkAndAddAutoSafeRecord();
+    }, 60000);
+
+    // Also check immediately
+    checkAndAddAutoSafeRecord();
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(autoCheckInterval);
     };
   }, []);
 
@@ -103,10 +150,17 @@ export function useRecords() {
 
     if (error) {
       console.error('Error adding bump record:', error);
+      return false;
     }
+    return true;
   };
 
-  const addSafeRecord = async () => {
+  const addSafeRecord = async (): Promise<{ success: boolean; alreadyCheckedIn: boolean }> => {
+    // Check if already checked in today
+    if (hasSafeRecordToday) {
+      return { success: false, alreadyCheckedIn: true };
+    }
+
     const now = new Date();
     const newRecord = {
       date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -120,7 +174,9 @@ export function useRecords() {
 
     if (error) {
       console.error('Error adding safe record:', error);
+      return { success: false, alreadyCheckedIn: false };
     }
+    return { success: true, alreadyCheckedIn: false };
   };
 
   const deleteRecord = async (id: string) => {
@@ -152,5 +208,6 @@ export function useRecords() {
     deleteRecord,
     setFilterDateRange,
     dateRange,
+    hasSafeRecordToday,
   };
 }
