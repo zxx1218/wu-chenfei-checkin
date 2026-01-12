@@ -92,10 +92,27 @@ export function useRecords() {
     }
   };
 
+  const deleteRecord = async (id: string) => {
+    const { error } = await supabase
+      .from('bump_records')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting record:', error);
+      return false;
+    }
+    
+    // Update local state immediately
+    setRecords(prev => prev.filter(record => record.id !== id));
+    return true;
+  };
+
   return {
     records,
     loading,
     addBumpRecord,
     addSafeRecord,
+    deleteRecord,
   };
 }
