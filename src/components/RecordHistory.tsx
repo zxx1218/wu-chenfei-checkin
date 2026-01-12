@@ -1,10 +1,13 @@
 import { BumpRecord, SeverityLevel } from '@/types/record';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MapPin, Clock, Calendar, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MapPin, Clock, Calendar, Sparkles, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface RecordHistoryProps {
   records: BumpRecord[];
   loading?: boolean;
+  onDelete?: (id: string) => Promise<boolean>;
 }
 
 const severityClassMap: Record<SeverityLevel, string> = {
@@ -14,7 +17,17 @@ const severityClassMap: Record<SeverityLevel, string> = {
   '不怎么痛': 'severity-mild',
 };
 
-export function RecordHistory({ records, loading }: RecordHistoryProps) {
+export function RecordHistory({ records, loading, onDelete }: RecordHistoryProps) {
+  const handleDelete = async (id: string) => {
+    if (onDelete) {
+      const success = await onDelete(id);
+      if (success) {
+        toast.success('记录已删除');
+      } else {
+        toast.error('删除失败，请重试');
+      }
+    }
+  };
   if (loading) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -65,12 +78,20 @@ export function RecordHistory({ records, loading }: RecordHistoryProps) {
                 )}
               </div>
 
-              <div>
+              <div className="flex items-center gap-2">
                 {record.type === 'bump' ? (
                   <span className="bump-badge">碰了</span>
                 ) : (
                   <span className="safe-badge">平安</span>
                 )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleDelete(record.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
