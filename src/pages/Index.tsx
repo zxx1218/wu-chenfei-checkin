@@ -1,6 +1,7 @@
 import { CheckInButtons } from '@/components/CheckInButtons';
 import { RecordHistory } from '@/components/RecordHistory';
 import { RecordStats } from '@/components/RecordStats';
+import { LocationHeatmap } from '@/components/LocationHeatmap';
 import { useRecords } from '@/hooks/useRecords';
 import { CalendarDays } from 'lucide-react';
 
@@ -40,6 +41,15 @@ const Index = () => {
             <span>统计分析</span>
           </h2>
           <RecordStats records={records} onDateRangeChange={setFilterDateRange} />
+        </section>
+
+        {/* Location Heatmap Section */}
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <span>🔥</span>
+            <span>碰撞热点</span>
+          </h2>
+          <LocationHeatmap records={records} />
         </section>
 
         {/* History Section */}
