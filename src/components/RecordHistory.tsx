@@ -4,6 +4,7 @@ import { MapPin, Clock, Calendar, Sparkles } from 'lucide-react';
 
 interface RecordHistoryProps {
   records: BumpRecord[];
+  loading?: boolean;
 }
 
 const severityClassMap: Record<SeverityLevel, string> = {
@@ -13,7 +14,16 @@ const severityClassMap: Record<SeverityLevel, string> = {
   '不怎么痛': 'severity-mild',
 };
 
-export function RecordHistory({ records }: RecordHistoryProps) {
+export function RecordHistory({ records, loading }: RecordHistoryProps) {
+  if (loading) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-lg">加载中...</p>
+      </div>
+    );
+  }
+
   if (records.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">

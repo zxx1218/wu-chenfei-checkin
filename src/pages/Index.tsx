@@ -4,7 +4,7 @@ import { useRecords } from '@/hooks/useRecords';
 import { CalendarDays } from 'lucide-react';
 
 const Index = () => {
-  const { records, addBumpRecord, addSafeRecord } = useRecords();
+  const { records, loading, addBumpRecord, addSafeRecord } = useRecords();
   
   const today = new Date().toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -38,7 +38,7 @@ const Index = () => {
             <span>📋</span>
             <span>每日记录</span>
           </h2>
-          <RecordHistory records={records} />
+          <RecordHistory records={records} loading={loading} />
         </section>
       </div>
     </div>
