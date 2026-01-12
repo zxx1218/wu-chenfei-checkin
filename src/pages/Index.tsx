@@ -2,11 +2,12 @@ import { CheckInButtons } from '@/components/CheckInButtons';
 import { RecordHistory } from '@/components/RecordHistory';
 import { RecordStats } from '@/components/RecordStats';
 import { LocationHeatmap } from '@/components/LocationHeatmap';
+import { TrendChart } from '@/components/TrendChart';
 import { useRecords } from '@/hooks/useRecords';
 import { CalendarDays } from 'lucide-react';
 
 const Index = () => {
-  const { records, loading, addBumpRecord, addSafeRecord, deleteRecord, setFilterDateRange } = useRecords();
+  const { records, allRecords, loading, addBumpRecord, addSafeRecord, deleteRecord, setFilterDateRange } = useRecords();
   
   const today = new Date().toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -41,6 +42,15 @@ const Index = () => {
             <span>统计分析</span>
           </h2>
           <RecordStats records={records} onDateRangeChange={setFilterDateRange} />
+        </section>
+
+        {/* Trend Chart Section */}
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <span>📈</span>
+            <span>趋势图表</span>
+          </h2>
+          <TrendChart records={allRecords} />
         </section>
 
         {/* Location Heatmap Section */}
