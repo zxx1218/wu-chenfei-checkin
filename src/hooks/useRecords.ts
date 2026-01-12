@@ -1,57 +1,100 @@
 import { useState, useEffect } from 'react';
 import { BumpRecord, SeverityLevel } from '@/types/record';
-
-const STORAGE_KEY = 'bump-records';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useRecords() {
   const [records, setRecords] = useState<BumpRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setRecords(JSON.parse(stored));
+  // Fetch records from database
+  const fetchRecords = async () => {
+    const { data, error } = await supabase
+      .from('bump_records')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Error fetching records:', error);
+      return;
     }
-  }, []);
 
-  const saveRecords = (newRecords: BumpRecord[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newRecords));
-    setRecords(newRecords);
+    if (data) {
+      setRecords(data.map(record => ({
+        id: record.id,
+        date: record.date,
+        time: record.time,
+        type: record.type as 'bump' | 'safe',
+        location: record.location || undefined,
+        severity: record.severity as SeverityLevel | undefined,
+      })));
+    }
+    setLoading(false);
   };
 
-  const addBumpRecord = (location: string, severity: SeverityLevel) => {
+  useEffect(() => {
+    fetchRecords();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('bump_records_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'bump_records',
+        },
+        () => {
+          fetchRecords();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const addBumpRecord = async (location: string, severity: SeverityLevel) => {
     const now = new Date();
-    const newRecord: BumpRecord = {
-      id: crypto.randomUUID(),
+    const newRecord = {
       date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
       time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-      type: 'bump',
+      type: 'bump' as const,
       location,
       severity,
     };
-    saveRecords([newRecord, ...records]);
+
+    const { error } = await supabase
+      .from('bump_records')
+      .insert(newRecord);
+
+    if (error) {
+      console.error('Error adding bump record:', error);
+    }
   };
 
-  const addSafeRecord = () => {
+  const addSafeRecord = async () => {
     const now = new Date();
-    const newRecord: BumpRecord = {
-      id: crypto.randomUUID(),
+    const newRecord = {
       date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
       time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-      type: 'safe',
+      type: 'safe' as const,
     };
-    saveRecords([newRecord, ...records]);
-  };
 
-  // Get records from the last 14 days
-  const getRecentRecords = () => {
-    const fourteenDaysAgo = new Date();
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-    
-    return records.slice(0, 50); // Show last 50 records max for performance
+    const { error } = await supabase
+      .from('bump_records')
+      .insert(newRecord);
+
+    if (error) {
+      console.error('Error adding safe record:', error);
+    }
   };
 
   return {
-    records: getRecentRecords(),
+    records,
+    loading,
     addBumpRecord,
     addSafeRecord,
   };
