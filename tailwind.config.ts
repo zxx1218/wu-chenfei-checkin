@@ -57,6 +57,20 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        bump: {
+          red: "hsl(var(--bump-red))",
+          "red-light": "hsl(var(--bump-red-light))",
+        },
+        safe: {
+          green: "hsl(var(--safe-green))",
+          "green-light": "hsl(var(--safe-green-light))",
+        },
+        severity: {
+          super: "hsl(var(--severity-super))",
+          very: "hsl(var(--severity-very))",
+          normal: "hsl(var(--severity-normal))",
+          mild: "hsl(var(--severity-mild))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
