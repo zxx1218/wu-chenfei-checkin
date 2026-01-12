@@ -7,4 +7,5 @@ export interface BumpRecord {
   type: 'bump' | 'safe';
   location?: string;
   severity?: SeverityLevel;
+  createdAt?: string;
 }
