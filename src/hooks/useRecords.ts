@@ -1,18 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { BumpRecord, SeverityLevel } from '@/types/record';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useRecords() {
-  const [records, setRecords] = useState<BumpRecord[]>([]);
+  const [allRecords, setAllRecords] = useState<BumpRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
 
-  // Fetch records from database
+  // Fetch all records from database
   const fetchRecords = async () => {
     const { data, error } = await supabase
       .from('bump_records')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching records:', error);
@@ -20,17 +23,45 @@ export function useRecords() {
     }
 
     if (data) {
-      setRecords(data.map(record => ({
+      setAllRecords(data.map(record => ({
         id: record.id,
         date: record.date,
         time: record.time,
         type: record.type as 'bump' | 'safe',
         location: record.location || undefined,
         severity: record.severity as SeverityLevel | undefined,
+        createdAt: record.created_at,
       })));
     }
     setLoading(false);
   };
+
+  // Filter records by date range
+  const filteredRecords = useMemo(() => {
+    if (!dateRange.from && !dateRange.to) {
+      return allRecords;
+    }
+
+    return allRecords.filter(record => {
+      const recordDate = new Date(record.createdAt || record.date);
+      
+      if (dateRange.from && dateRange.to) {
+        const from = new Date(dateRange.from);
+        from.setHours(0, 0, 0, 0);
+        const to = new Date(dateRange.to);
+        to.setHours(23, 59, 59, 999);
+        return recordDate >= from && recordDate <= to;
+      }
+      
+      if (dateRange.from) {
+        const from = new Date(dateRange.from);
+        from.setHours(0, 0, 0, 0);
+        return recordDate >= from;
+      }
+      
+      return true;
+    });
+  }, [allRecords, dateRange]);
 
   useEffect(() => {
     fetchRecords();
@@ -104,15 +135,22 @@ export function useRecords() {
     }
     
     // Update local state immediately
-    setRecords(prev => prev.filter(record => record.id !== id));
+    setAllRecords(prev => prev.filter(record => record.id !== id));
     return true;
   };
 
+  const setFilterDateRange = (range: { from: Date | undefined; to: Date | undefined }) => {
+    setDateRange(range);
+  };
+
   return {
-    records,
+    records: filteredRecords,
+    allRecords,
     loading,
     addBumpRecord,
     addSafeRecord,
     deleteRecord,
+    setFilterDateRange,
+    dateRange,
   };
 }
