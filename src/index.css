@@ -101,9 +101,21 @@
     @apply text-primary-foreground hover:brightness-110;
   }
 
+  .bump-button-danger:hover {
+    animation: shake 0.5s ease-in-out;
+  }
+
   .bump-button-safe {
     background: linear-gradient(145deg, hsl(var(--secondary)), hsl(160 55% 45%));
     @apply text-secondary-foreground hover:brightness-110;
+  }
+
+  .bump-button-safe:hover .heart-icon {
+    animation: heartbeat 1s ease-in-out infinite;
+  }
+
+  .bump-button-checked {
+    animation: pop 0.3s ease-out;
   }
 
   .history-card {
