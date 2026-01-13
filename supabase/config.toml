@@ -1,1 +1,9 @@
 project_id = "sdnpllfnojvkphmqklzp"
+
+[functions.auto-safe-checkin]
+verify_jwt = false
+
+# Run daily at 00:05 AM UTC+8 (which is 16:05 UTC previous day)
+[[cron]]
+function = "auto-safe-checkin"
+schedule = "5 16 * * *"

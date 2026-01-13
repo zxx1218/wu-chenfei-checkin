@@ -75,32 +75,6 @@ export function useRecords() {
     });
   }, [allRecords, dateRange]);
 
-  // Check and add auto safe record at midnight
-  const checkAndAddAutoSafeRecord = async () => {
-    const now = new Date();
-    const todayStr = getTodayDateString();
-    
-    // Check if there's any record for today
-    const hasRecordToday = allRecords.some(record => record.date === todayStr);
-    
-    if (!hasRecordToday && now.getHours() === 0 && now.getMinutes() < 5) {
-      // Auto add safe record
-      const newRecord = {
-        date: todayStr,
-        time: '00:00',
-        type: 'safe' as const,
-      };
-
-      const { error } = await supabase
-        .from('bump_records')
-        .insert(newRecord);
-
-      if (error) {
-        console.error('Error adding auto safe record:', error);
-      }
-    }
-  };
-
   useEffect(() => {
     fetchRecords();
 
@@ -120,17 +94,8 @@ export function useRecords() {
       )
       .subscribe();
 
-    // Check for auto safe record every minute
-    const autoCheckInterval = setInterval(() => {
-      checkAndAddAutoSafeRecord();
-    }, 60000);
-
-    // Also check immediately
-    checkAndAddAutoSafeRecord();
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(autoCheckInterval);
     };
   }, []);
 
