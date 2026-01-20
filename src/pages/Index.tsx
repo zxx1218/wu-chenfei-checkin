@@ -3,11 +3,14 @@ import { RecordHistory } from '@/components/RecordHistory';
 import { RecordStats } from '@/components/RecordStats';
 import { LocationHeatmap } from '@/components/LocationHeatmap';
 import { TrendChart } from '@/components/TrendChart';
+import { AchievementBadges } from '@/components/AchievementBadges';
 import { useRecords } from '@/hooks/useRecords';
+import { useAchievements } from '@/hooks/useAchievements';
 import { CalendarDays } from 'lucide-react';
 
 const Index = () => {
   const { records, allRecords, loading, addBumpRecord, addSafeRecord, deleteRecord, setFilterDateRange, hasSafeRecordToday } = useRecords();
+  const achievements = useAchievements(allRecords);
   
   const today = new Date().toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -42,6 +45,15 @@ const Index = () => {
             <span>统计分析</span>
           </h2>
           <RecordStats records={records} onDateRangeChange={setFilterDateRange} />
+        </section>
+
+        {/* Achievements Section */}
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <span>🏅</span>
+            <span>成就徽章</span>
+          </h2>
+          <AchievementBadges achievements={achievements} />
         </section>
 
         {/* Trend Chart Section */}
