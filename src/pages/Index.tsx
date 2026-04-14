@@ -3,6 +3,7 @@ import { RecordHistory } from '@/components/RecordHistory';
 import { RecordStats } from '@/components/RecordStats';
 import { LocationHeatmap } from '@/components/LocationHeatmap';
 import { TrendChart } from '@/components/TrendChart';
+import { Link } from 'react-router-dom';
 import { AchievementBadges } from '@/components/AchievementBadges';
 import { useRecords } from '@/hooks/useRecords';
 import { useAchievements } from '@/hooks/useAchievements';
@@ -30,6 +31,11 @@ const Index = () => {
           <div className="inline-flex items-center gap-2 bg-card px-4 py-2 rounded-full shadow-sm border border-border/50">
             <CalendarDays className="w-5 h-5 text-primary" />
             <span className="text-foreground font-medium">{today}</span>
+          </div>
+          <div className="mt-4">
+            <Link to="/milktea" className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors bg-primary/10 px-4 py-2 rounded-full">
+              🧋 小梨的奶茶记录 →
+            </Link>
           </div>
         </header>
 
