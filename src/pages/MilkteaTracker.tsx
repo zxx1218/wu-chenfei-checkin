@@ -65,7 +65,7 @@ const MilkteaTracker = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Confetti active={showConfetti} onComplete={() => setShowConfetti(false)} />
+      {showConfetti && <Confetti active={showConfetti} type="safe" />}
       <div className="container max-w-lg mx-auto px-4 py-8">
         {/* Header */}
         <header className="text-center mb-10">
