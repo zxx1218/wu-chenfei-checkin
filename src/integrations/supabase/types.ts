@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      milktea_records: {
+        Row: {
+          brand: string | null
+          created_at: string
+          date: string
+          drink_name: string | null
+          id: string
+          time: string
+          type: string
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          date: string
+          drink_name?: string | null
+          id?: string
+          time: string
+          type: string
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          date?: string
+          drink_name?: string | null
+          id?: string
+          time?: string
+          type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
