@@ -71,7 +71,7 @@ const MilkteaTracker = () => {
         <header className="text-center mb-10">
           <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            返回每日一碰
+            ← 返回首页
           </Link>
           <h1 className="text-3xl font-bold gradient-text mb-4">
             🧋 小梨的奶茶记录
