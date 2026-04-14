@@ -33,8 +33,8 @@ const Index = () => {
             <span className="text-foreground font-medium">{today}</span>
           </div>
           <div className="mt-4">
-            <Link to="/milktea" className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors bg-primary/10 px-4 py-2 rounded-full">
-              🧋 小梨的奶茶记录 →
+            <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              ← 返回首页
             </Link>
           </div>
         </header>
