@@ -9,6 +9,7 @@ import { NavLink } from '@/components/NavLink';
 import { MilkteaBrandSelect } from '@/components/MilkteaBrandSelect';
 import { MilkteaBrandChart } from '@/components/MilkteaBrandChart';
 import { MilkteaHealthChart } from '@/components/MilkteaHealthChart';
+import { MilkteaBudget } from '@/components/MilkteaBudget';
 import { Link } from 'react-router-dom';
 
 const MilkteaTracker = () => {
@@ -135,6 +136,15 @@ const MilkteaTracker = () => {
               )}
             </div>
           )}
+        </section>
+
+        {/* Weekly Budget */}
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <span>🎯</span>
+            <span>本周预算</span>
+          </h2>
+          <MilkteaBudget records={records} />
         </section>
 
         {/* Stats */}
