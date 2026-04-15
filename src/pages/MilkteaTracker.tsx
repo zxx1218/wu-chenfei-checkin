@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Confetti } from '@/components/Confetti';
 import { NavLink } from '@/components/NavLink';
 import { MilkteaBrandSelect } from '@/components/MilkteaBrandSelect';
+import { MilkteaBrandChart } from '@/components/MilkteaBrandChart';
+import { MilkteaHealthChart } from '@/components/MilkteaHealthChart';
 import { Link } from 'react-router-dom';
 
 const MilkteaTracker = () => {
@@ -151,6 +153,24 @@ const MilkteaTracker = () => {
               <p className="text-sm text-muted-foreground mt-1">乖乖天数</p>
             </div>
           </div>
+        </section>
+
+        {/* Brand Bar Chart */}
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <span>📈</span>
+            <span>品牌趋势</span>
+          </h2>
+          <MilkteaBrandChart records={records} />
+        </section>
+
+        {/* Health Analysis */}
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <span>💚</span>
+            <span>健康分析</span>
+          </h2>
+          <MilkteaHealthChart records={records} />
         </section>
 
         {/* History */}
