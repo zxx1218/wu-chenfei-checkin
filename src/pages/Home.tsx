@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import BackfillDialog from '@/components/BackfillDialog';
 
 const floatingEmojis = ['🌸', '✨', '💫', '🍃', '🌷', '💖', '⭐', '🌼'];
 
@@ -88,6 +89,8 @@ const Home = () => {
               <span className="text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 text-xl">→</span>
             </div>
           </Link>
+
+          <BackfillDialog />
         </div>
 
         {/* Footer decoration */}
