@@ -44,6 +44,39 @@ export type Database = {
         }
         Relationships: []
       }
+      doi_records: {
+        Row: {
+          created_at: string
+          date: string
+          duration_minutes: number
+          id: string
+          notes: string | null
+          passion_score: number | null
+          position: string | null
+          time: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          passion_score?: number | null
+          position?: string | null
+          time: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          passion_score?: number | null
+          position?: string | null
+          time?: string
+        }
+        Relationships: []
+      }
       milktea_records: {
         Row: {
           brand: string | null
