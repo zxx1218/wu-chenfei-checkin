@@ -71,6 +71,23 @@ const Home = () => {
               <span className="text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 text-xl">→</span>
             </div>
           </Link>
+
+          <Link
+            to="/doi"
+            className="block bg-card rounded-3xl p-6 shadow-sm border border-border/50 hover:shadow-lg hover:border-primary/40 hover:-translate-y-1 transition-all duration-300 group animate-fade-in"
+            style={{ animationDelay: '0.6s', animationFillMode: 'backwards' }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:animate-home-wiggle">
+                <span className="text-3xl">💖</span>
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-foreground">doi 记录</h2>
+                <p className="text-sm text-muted-foreground">记录每一次甜蜜时刻</p>
+              </div>
+              <span className="text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 text-xl">→</span>
+            </div>
+          </Link>
         </div>
 
         {/* Footer decoration */}
