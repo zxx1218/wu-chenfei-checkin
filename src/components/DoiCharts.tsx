@@ -47,8 +47,10 @@ const DoiCharts = ({ records }: Props) => {
   const positions = useMemo(() => {
     const m: Record<string, number> = {};
     records.forEach((r) => {
-      const p = r.position || '未填';
-      m[p] = (m[p] || 0) + 1;
+      const parts = (r.position || '未填').split(/[、,，]/).map((s) => s.trim()).filter(Boolean);
+      (parts.length ? parts : ['未填']).forEach((p) => {
+        m[p] = (m[p] || 0) + 1;
+      });
     });
     return Object.entries(m).map(([name, value]) => ({ name, value }));
   }, [records]);
