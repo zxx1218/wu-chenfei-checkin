@@ -20,9 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { MilkteaBrandSelect } from '@/components/MilkteaBrandSelect';
-import { POSITIONS } from '@/components/DoiAddDialog';
+import PositionMultiSelect from '@/components/PositionMultiSelect';
+import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { SeverityLevel } from '@/types/record';
@@ -70,7 +70,7 @@ const BackfillDialog = () => {
 
   // doi
   const [duration, setDuration] = useState(30);
-  const [position, setPosition] = useState('传教士');
+  const [positions, setPositions] = useState<string[]>(['传教士']);
   const [passion, setPassion] = useState(8);
   const [notes, setNotes] = useState('');
 
@@ -84,7 +84,7 @@ const BackfillDialog = () => {
     setBrand('');
     setDrinkName('');
     setDuration(30);
-    setPosition('传教士');
+    setPositions(['传教士']);
     setPassion(8);
     setNotes('');
   };
@@ -132,7 +132,7 @@ const BackfillDialog = () => {
       date,
       time,
       duration_minutes: duration,
-      position: position || null,
+      position: positions.length ? positions.join('、') : null,
       passion_score: passion,
       notes: notes.trim() || null,
     });
@@ -284,15 +284,8 @@ const BackfillDialog = () => {
               />
             </div>
             <div>
-              <Label>体位</Label>
-              <Select value={position} onValueChange={setPosition}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {POSITIONS.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>体位（可多选组合）</Label>
+              <PositionMultiSelect values={positions} onChange={setPositions} />
             </div>
             <div>
               <Label>激情评分：{passion} / 10 {'❤️'.repeat(Math.min(passion, 10))}</Label>

@@ -25,7 +25,10 @@ const DoiStats = ({ records }: Props) => {
     const avgPassion = total ? (records.reduce((s, r) => s + (r.passionScore || 0), 0) / total).toFixed(1) : '0';
     const posCount: Record<string, number> = {};
     records.forEach((r) => {
-      if (r.position) posCount[r.position] = (posCount[r.position] || 0) + 1;
+      if (!r.position) return;
+      r.position.split(/[、,，]/).map((s) => s.trim()).filter(Boolean).forEach((p) => {
+        posCount[p] = (posCount[p] || 0) + 1;
+      });
     });
     const favPosition = Object.entries(posCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
     const streak = calcStreak(records);
