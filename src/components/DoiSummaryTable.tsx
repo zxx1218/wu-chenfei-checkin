@@ -4,15 +4,20 @@ import type { DoiRecord } from '@/hooks/useDoiRecords';
 
 interface Props { records: DoiRecord[]; }
 
-const buildAgg = (records: DoiRecord[], keyFn: (r: DoiRecord) => string) => {
+const buildAgg = (
+  records: DoiRecord[],
+  keyFn: (r: DoiRecord) => string | string[],
+) => {
   const map: Record<string, { count: number; totalDuration: number; totalPassion: number }> = {};
   records.forEach((r) => {
-    const k = keyFn(r);
-    if (!k) return;
-    if (!map[k]) map[k] = { count: 0, totalDuration: 0, totalPassion: 0 };
-    map[k].count += 1;
-    map[k].totalDuration += r.durationMinutes || 0;
-    map[k].totalPassion += r.passionScore || 0;
+    const raw = keyFn(r);
+    const keys = Array.isArray(raw) ? raw : [raw];
+    keys.filter(Boolean).forEach((k) => {
+      if (!map[k]) map[k] = { count: 0, totalDuration: 0, totalPassion: 0 };
+      map[k].count += 1;
+      map[k].totalDuration += r.durationMinutes || 0;
+      map[k].totalPassion += r.passionScore || 0;
+    });
   });
   return Object.entries(map)
     .map(([key, v]) => ({
@@ -25,7 +30,13 @@ const buildAgg = (records: DoiRecord[], keyFn: (r: DoiRecord) => string) => {
 };
 
 const DoiSummaryTable = ({ records }: Props) => {
-  const byPosition = useMemo(() => buildAgg(records, (r) => r.position || ''), [records]);
+  const byPosition = useMemo(
+    () =>
+      buildAgg(records, (r) =>
+        (r.position || '').split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
+      ),
+    [records],
+  );
   const byMonth = useMemo(() => buildAgg(records, (r) => r.date.slice(0, 7)), [records]);
 
   if (!records.length) return null;
