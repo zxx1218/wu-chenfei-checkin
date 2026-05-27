@@ -4,14 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { toast } from '@/hooks/use-toast';
 import type { NewDoiRecord } from '@/hooks/useDoiRecords';
-
-export const POSITIONS = [
-  '传教士', '女上位', '后入式', '侧卧式', '坐姿', '69式', '站立', '其他',
-];
+import PositionMultiSelect, { POSITIONS } from './PositionMultiSelect';
+export { POSITIONS };
 
 interface Props {
   onAdd: (r: NewDoiRecord) => Promise<boolean>;
@@ -25,7 +22,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
   const [date, setDate] = useState(todayStr());
   const [time, setTime] = useState(nowTime());
   const [duration, setDuration] = useState(30);
-  const [position, setPosition] = useState<string>('传教士');
+  const [positions, setPositions] = useState<string[]>(['传教士']);
   const [passion, setPassion] = useState(8);
   const [notes, setNotes] = useState('');
 
@@ -33,7 +30,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
     setDate(todayStr());
     setTime(nowTime());
     setDuration(30);
-    setPosition('传教士');
+    setPositions(['传教士']);
     setPassion(8);
     setNotes('');
   };
@@ -43,7 +40,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
       date,
       time,
       durationMinutes: duration,
-      position,
+      position: positions.join('、') || undefined,
       passionScore: passion,
       notes: notes.trim() || undefined,
     });
@@ -83,13 +80,8 @@ const DoiAddDialog = ({ onAdd }: Props) => {
             <Slider value={[duration]} min={1} max={180} step={1} onValueChange={(v) => setDuration(v[0])} className="mt-2" />
           </div>
           <div>
-            <Label>体位</Label>
-            <Select value={position} onValueChange={setPosition}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {POSITIONS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Label>体位（可多选组合）</Label>
+            <PositionMultiSelect values={positions} onChange={setPositions} />
           </div>
           <div>
             <Label>激情评分：{passion} / 10 {'❤️'.repeat(Math.min(passion, 10))}</Label>
