@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BumpRecord, SeverityLevel } from '@/types/record';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,13 +9,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, Calendar, Sparkles, MoreVertical, Trash2 } from 'lucide-react';
+import { MapPin, Clock, Calendar, Sparkles, MoreVertical, Trash2, Pencil, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface RecordHistoryProps {
   records: BumpRecord[];
   loading?: boolean;
   onDelete?: (id: string) => Promise<boolean>;
+  onEdit?: (record: BumpRecord) => void;
 }
 
 const severityClassMap: Record<SeverityLevel, string> = {
@@ -24,10 +26,21 @@ const severityClassMap: Record<SeverityLevel, string> = {
   '不怎么痛': 'severity-mild',
 };
 
-export function RecordHistory({ records, loading, onDelete }: RecordHistoryProps) {
+export function RecordHistory({ records, loading, onDelete, onEdit }: RecordHistoryProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
   const isPaused = useRef(false);
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return records;
+    return records.filter((r) =>
+      (r.location || '').toLowerCase().includes(q) ||
+      (r.severity || '').toLowerCase().includes(q) ||
+      r.date.toLowerCase().includes(q)
+    );
+  }, [records, query]);
 
   const handleDelete = async (id: string) => {
     if (onDelete) {
@@ -43,7 +56,7 @@ export function RecordHistory({ records, loading, onDelete }: RecordHistoryProps
   // Auto-scroll effect
   useEffect(() => {
     const scrollContainer = scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-    if (!scrollContainer || records.length === 0) return;
+    if (!scrollContainer || filtered.length === 0 || query) return;
 
     let scrollPosition = 0;
     const scrollSpeed = 0.5; // pixels per frame
@@ -87,7 +100,7 @@ export function RecordHistory({ records, loading, onDelete }: RecordHistoryProps
       scrollContainer.removeEventListener('touchstart', handleMouseEnter);
       scrollContainer.removeEventListener('touchend', handleMouseLeave);
     };
-  }, [records.length]);
+  }, [filtered.length, query]);
 
   if (loading) {
     return (
@@ -109,10 +122,22 @@ export function RecordHistory({ records, loading, onDelete }: RecordHistoryProps
   }
 
   return (
-    <div ref={scrollRef}>
+    <div ref={scrollRef} className="space-y-3">
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="搜索部位 / 程度 / 日期…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="pl-9 h-9 rounded-full"
+        />
+      </div>
       <ScrollArea className="h-[400px] pr-4">
         <div className="space-y-3">
-          {records.map((record) => (
+          {filtered.length === 0 && (
+            <p className="text-center text-sm text-muted-foreground py-8">没有匹配的记录～</p>
+          )}
+          {filtered.map((record) => (
             <div key={record.id} className="history-card group">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 space-y-2">
@@ -158,6 +183,15 @@ export function RecordHistory({ records, loading, onDelete }: RecordHistoryProps
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-popover">
+                      {onEdit && record.type === 'bump' && (
+                        <DropdownMenuItem
+                          onClick={() => onEdit(record)}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          编辑记录
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem 
                         onClick={() => handleDelete(record.id)}
                         className="text-destructive focus:text-destructive cursor-pointer"

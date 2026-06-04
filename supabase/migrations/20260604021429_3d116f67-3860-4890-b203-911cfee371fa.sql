@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can update bump records" ON public.bump_records FOR UPDATE USING (true) WITH CHECK (true);

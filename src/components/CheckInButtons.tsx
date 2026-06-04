@@ -9,9 +9,10 @@ interface CheckInButtonsProps {
   onBump: (location: string, severity: SeverityLevel) => Promise<boolean>;
   onSafe: () => Promise<{ success: boolean; alreadyCheckedIn: boolean }>;
   hasSafeRecordToday: boolean;
+  pastLocations?: string[];
 }
 
-export function CheckInButtons({ onBump, onSafe, hasSafeRecordToday }: CheckInButtonsProps) {
+export function CheckInButtons({ onBump, onSafe, hasSafeRecordToday, pastLocations }: CheckInButtonsProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiType, setConfettiType] = useState<'safe' | 'bump'>('safe');
@@ -97,6 +98,7 @@ export function CheckInButtons({ onBump, onSafe, hasSafeRecordToday }: CheckInBu
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           onSubmit={handleBumpSubmit}
+          pastLocations={pastLocations}
         />
       </div>
     </>
