@@ -1,17 +1,63 @@
+import { useMemo, useState } from 'react';
 import { CheckInButtons } from '@/components/CheckInButtons';
 import { RecordHistory } from '@/components/RecordHistory';
 import { RecordStats } from '@/components/RecordStats';
 import { LocationHeatmap } from '@/components/LocationHeatmap';
 import { TrendChart } from '@/components/TrendChart';
+import { BumpInsights } from '@/components/BumpInsights';
+import { EditBumpDialog } from '@/components/EditBumpDialog';
 import { Link } from 'react-router-dom';
 import { AchievementBadges } from '@/components/AchievementBadges';
 import { useRecords } from '@/hooks/useRecords';
 import { useAchievements } from '@/hooks/useAchievements';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Download, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BumpRecord } from '@/types/record';
+import { toast } from 'sonner';
 
 const Index = () => {
-  const { records, allRecords, loading, addBumpRecord, addSafeRecord, deleteRecord, setFilterDateRange, hasSafeRecordToday } = useRecords();
+  const {
+    records, allRecords, loading,
+    addBumpRecord, addSafeRecord, deleteRecord, updateRecord,
+    setFilterDateRange, hasSafeRecordToday, safeStreak,
+  } = useRecords();
   const achievements = useAchievements(allRecords);
+  const [editing, setEditing] = useState<BumpRecord | null>(null);
+
+  // Top body parts from history (for quick chips in dialog)
+  const pastLocations = useMemo(() => {
+    const counts: Record<string, number> = {};
+    allRecords.forEach((r) => {
+      if (r.type === 'bump' && r.location) {
+        counts[r.location] = (counts[r.location] || 0) + 1;
+      }
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k]) => k);
+  }, [allRecords]);
+
+  const exportCSV = () => {
+    if (allRecords.length === 0) {
+      toast.info('还没有记录可以导出');
+      return;
+    }
+    const rows = [
+      ['日期', '时间', '类型', '部位', '严重程度'],
+      ...allRecords.map((r) => [
+        r.date, r.time,
+        r.type === 'bump' ? '碰撞' : '平安',
+        r.location || '', r.severity || '',
+      ]),
+    ];
+    const csv = '\uFEFF' + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `磕碰记录_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('已导出 CSV');
+  };
   
   const today = new Date().toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -39,9 +85,28 @@ const Index = () => {
           </div>
         </header>
 
+        {/* Safe streak banner */}
+        {safeStreak > 0 && (
+          <div className="mb-6 rounded-3xl p-4 bg-gradient-to-r from-[hsl(var(--safe-green-light))] to-[hsl(var(--accent)/0.2)] border border-[hsl(var(--safe-green)/0.25)] flex items-center gap-3 animate-fade-in">
+            <div className="w-12 h-12 rounded-2xl bg-[hsl(var(--safe-green)/0.15)] flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-[hsl(var(--safe-green))]" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">连续平安打卡</p>
+              <p className="text-xl font-bold text-[hsl(var(--safe-green))]">{safeStreak} 天</p>
+            </div>
+            <span className="text-2xl">🌸</span>
+          </div>
+        )}
+
         {/* Check-in Buttons */}
         <section className="mb-12">
-          <CheckInButtons onBump={addBumpRecord} onSafe={addSafeRecord} hasSafeRecordToday={hasSafeRecordToday} />
+          <CheckInButtons
+            onBump={addBumpRecord}
+            onSafe={addSafeRecord}
+            hasSafeRecordToday={hasSafeRecordToday}
+            pastLocations={pastLocations}
+          />
         </section>
 
         {/* Stats Section */}
@@ -80,15 +145,42 @@ const Index = () => {
           <LocationHeatmap records={records} />
         </section>
 
+        {/* Insights Section */}
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <span>🧠</span>
+            <span>智能洞察</span>
+          </h2>
+          <BumpInsights records={allRecords} />
+        </section>
+
         {/* History Section */}
         <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50">
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <span>📋</span>
-            <span>每日记录</span>
-          </h2>
-          <RecordHistory records={records} loading={loading} onDelete={deleteRecord} />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <span>📋</span>
+              <span>每日记录</span>
+            </h2>
+            <Button variant="outline" size="sm" onClick={exportCSV} className="rounded-full gap-1.5">
+              <Download className="w-4 h-4" />
+              导出
+            </Button>
+          </div>
+          <RecordHistory
+            records={records}
+            loading={loading}
+            onDelete={deleteRecord}
+            onEdit={(r) => setEditing(r)}
+          />
         </section>
       </div>
+
+      <EditBumpDialog
+        record={editing}
+        open={!!editing}
+        onOpenChange={(v) => !v && setEditing(null)}
+        onSave={updateRecord}
+      />
     </div>
   );
 };
