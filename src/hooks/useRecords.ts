@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { BumpRecord, SeverityLevel } from '@/types/record';
 import { supabase } from '@/integrations/supabase/client';
-import { format, startOfDay, endOfDay } from 'date-fns';
 
 export function useRecords() {
   const [allRecords, setAllRecords] = useState<BumpRecord[]>([]);
@@ -20,6 +19,33 @@ export function useRecords() {
   const hasSafeRecordToday = useMemo(() => {
     const todayStr = getTodayDateString();
     return allRecords.some(record => record.type === 'safe' && record.date === todayStr);
+  }, [allRecords]);
+
+  // Consecutive safe-day streak (counts back from today; today optional).
+  const safeStreak = useMemo(() => {
+    const safeDates = new Set(
+      allRecords.filter(r => r.type === 'safe' && r.createdAt)
+        .map(r => new Date(r.createdAt!).toDateString())
+    );
+    const bumpDates = new Set(
+      allRecords.filter(r => r.type === 'bump' && r.createdAt)
+        .map(r => new Date(r.createdAt!).toDateString())
+    );
+    let streak = 0;
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+    // skip today if not yet checked in safe and not bumped
+    if (!safeDates.has(cursor.toDateString()) && !bumpDates.has(cursor.toDateString())) {
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    for (let i = 0; i < 3650; i++) {
+      const key = cursor.toDateString();
+      if (bumpDates.has(key)) break;
+      if (safeDates.has(key)) streak++;
+      else break;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
   }, [allRecords]);
 
   // Fetch all records from database
@@ -160,6 +186,24 @@ export function useRecords() {
     return true;
   };
 
+  const updateRecord = async (
+    id: string,
+    patch: { location?: string | null; severity?: SeverityLevel | null }
+  ) => {
+    const { error } = await supabase
+      .from('bump_records')
+      .update({
+        location: patch.location ?? null,
+        severity: patch.severity ?? null,
+      })
+      .eq('id', id);
+    if (error) {
+      console.error('Error updating record:', error);
+      return false;
+    }
+    return true;
+  };
+
   const setFilterDateRange = (range: { from: Date | undefined; to: Date | undefined }) => {
     setDateRange(range);
   };
@@ -171,8 +215,10 @@ export function useRecords() {
     addBumpRecord,
     addSafeRecord,
     deleteRecord,
+    updateRecord,
     setFilterDateRange,
     dateRange,
     hasSafeRecordToday,
+    safeStreak,
   };
 }
