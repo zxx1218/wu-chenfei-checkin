@@ -51,6 +51,13 @@ export type Database = {
           duration_minutes: number
           id: string
           notes: string | null
+          partner_comment: string | null
+          partner_duration_feedback: string | null
+          partner_overall_score: number | null
+          partner_passion_score: number | null
+          partner_position_feedback: string | null
+          partner_reviewed_at: string | null
+          partner_reviewer: string | null
           passion_score: number | null
           position: string | null
           time: string
@@ -61,6 +68,13 @@ export type Database = {
           duration_minutes?: number
           id?: string
           notes?: string | null
+          partner_comment?: string | null
+          partner_duration_feedback?: string | null
+          partner_overall_score?: number | null
+          partner_passion_score?: number | null
+          partner_position_feedback?: string | null
+          partner_reviewed_at?: string | null
+          partner_reviewer?: string | null
           passion_score?: number | null
           position?: string | null
           time: string
@@ -71,6 +85,13 @@ export type Database = {
           duration_minutes?: number
           id?: string
           notes?: string | null
+          partner_comment?: string | null
+          partner_duration_feedback?: string | null
+          partner_overall_score?: number | null
+          partner_passion_score?: number | null
+          partner_position_feedback?: string | null
+          partner_reviewed_at?: string | null
+          partner_reviewer?: string | null
           passion_score?: number | null
           position?: string | null
           time?: string
