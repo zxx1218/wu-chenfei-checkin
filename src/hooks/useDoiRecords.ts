@@ -10,6 +10,13 @@ export interface DoiRecord {
   passionScore?: number;
   notes?: string;
   createdAt?: string;
+  partnerOverallScore?: number;
+  partnerPassionScore?: number;
+  partnerDurationFeedback?: string;
+  partnerPositionFeedback?: string;
+  partnerComment?: string;
+  partnerReviewer?: string;
+  partnerReviewedAt?: string;
 }
 
 export interface NewDoiRecord {
@@ -19,6 +26,15 @@ export interface NewDoiRecord {
   position?: string;
   passionScore?: number;
   notes?: string;
+}
+
+export interface PartnerReview {
+  partnerOverallScore?: number;
+  partnerPassionScore?: number;
+  partnerDurationFeedback?: string;
+  partnerPositionFeedback?: string;
+  partnerComment?: string;
+  partnerReviewer?: string;
 }
 
 export function useDoiRecords() {
@@ -48,6 +64,13 @@ export function useDoiRecords() {
           passionScore: r.passion_score ?? undefined,
           notes: r.notes || undefined,
           createdAt: r.created_at,
+          partnerOverallScore: r.partner_overall_score ?? undefined,
+          partnerPassionScore: r.partner_passion_score ?? undefined,
+          partnerDurationFeedback: r.partner_duration_feedback || undefined,
+          partnerPositionFeedback: r.partner_position_feedback || undefined,
+          partnerComment: r.partner_comment || undefined,
+          partnerReviewer: r.partner_reviewer || undefined,
+          partnerReviewedAt: r.partner_reviewed_at || undefined,
         }))
       );
     }
@@ -93,5 +116,25 @@ export function useDoiRecords() {
     return true;
   };
 
-  return { records, loading, addRecord, deleteRecord };
+  const saveReview = async (id: string, review: PartnerReview) => {
+    const { error } = await supabase
+      .from('doi_records')
+      .update({
+        partner_overall_score: review.partnerOverallScore ?? null,
+        partner_passion_score: review.partnerPassionScore ?? null,
+        partner_duration_feedback: review.partnerDurationFeedback || null,
+        partner_position_feedback: review.partnerPositionFeedback || null,
+        partner_comment: review.partnerComment || null,
+        partner_reviewer: review.partnerReviewer || null,
+        partner_reviewed_at: new Date().toISOString(),
+      } as any)
+      .eq('id', id);
+    if (error) {
+      console.error('Error saving partner review:', error);
+      return false;
+    }
+    return true;
+  };
+
+  return { records, loading, addRecord, deleteRecord, saveReview };
 }
