@@ -15,6 +15,7 @@ const DoiHistory = ({ records, onDelete, onSaveReview }: Props) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
+  const wheelPauseRef = useRef<number>(0);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -22,10 +23,17 @@ const DoiHistory = ({ records, onDelete, onSaveReview }: Props) => {
     if (!el || !inner) return;
     let raf = 0;
     const step = () => {
-      if (!paused && inner.scrollHeight > el.clientHeight) {
+      const now = performance.now();
+      const wheelActive = now < wheelPauseRef.current;
+      if (!paused && !wheelActive && inner.scrollHeight > el.clientHeight) {
         const half = inner.scrollHeight / 2;
-        el.scrollTop += 0.4;
+        el.scrollTop += 0.15;
         if (el.scrollTop >= half) el.scrollTop -= half;
+      } else if (inner.scrollHeight > el.clientHeight) {
+        // keep loop seamless even during manual scroll
+        const half = inner.scrollHeight / 2;
+        if (el.scrollTop >= half) el.scrollTop -= half;
+        else if (el.scrollTop < 0) el.scrollTop += half;
       }
       raf = requestAnimationFrame(step);
     };
@@ -84,7 +92,8 @@ const DoiHistory = ({ records, onDelete, onSaveReview }: Props) => {
         onMouseLeave={() => setPaused(false)}
         onTouchStart={() => setPaused(true)}
         onTouchEnd={() => setPaused(false)}
-        className="max-h-80 overflow-hidden relative"
+        onWheel={() => { wheelPauseRef.current = performance.now() + 1500; }}
+        className="max-h-80 overflow-y-auto relative [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ maskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)' }}
       >
         <div ref={innerRef}>
