@@ -109,16 +109,12 @@ const DoiHistory = ({ records, onDelete, onSaveReview }: Props) => {
           </ul>
         </div>
       </div>
-      {reviewing && (
-        <DoiReviewDialog
-          record={reviewing}
-          onSave={(review) => {
-            onSaveReview(reviewing.id, review);
-            setReviewing(null);
-          }}
-          onClose={() => setReviewing(null)}
-        />
-      )}
+      <DoiReviewDialog
+        record={reviewing}
+        open={!!reviewing}
+        onOpenChange={(v) => !v && setReviewing(null)}
+        onSave={onSaveReview}
+      />
     </div>
   );
 };
