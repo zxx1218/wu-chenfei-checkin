@@ -1,20 +1,33 @@
 import { useMemo } from 'react';
 import type { DoiRecord } from '@/hooks/useDoiRecords';
 
-interface Props { records: DoiRecord[]; }
+interface Props {
+  records: DoiRecord[];
+}
 
-const calcStreak = (records: DoiRecord[]): number => {
+const calcStreak = (records: DoiRecord[]) => {
   if (!records.length) return 0;
-  const dateSet = new Set(records.map((r) => r.date));
-  let streak = 0;
-  const d = new Date();
-  while (true) {
-    const key = d.toISOString().slice(0, 10);
-    if (dateSet.has(key)) {
+  
+  // 按日期去重，获取所有不同的日期
+  const uniqueDates = Array.from(new Set(records.map(r => r.date))).sort().reverse();
+  
+  // 计算连续天数
+  let streak = 1;
+  let currentDate = new Date(uniqueDates[0]);
+  
+  for (let i = 1; i < uniqueDates.length; i++) {
+    const nextDate = new Date(uniqueDates[i]);
+    const diffTime = currentDate.getTime() - nextDate.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
       streak++;
-      d.setDate(d.getDate() - 1);
-    } else break;
+      currentDate = nextDate;
+    } else if (diffDays > 1) {
+      break;
+    }
   }
+  
   return streak;
 };
 
@@ -23,6 +36,17 @@ const DoiStats = ({ records }: Props) => {
     const total = records.length;
     const totalMin = records.reduce((s, r) => s + (r.durationMinutes || 0), 0);
     const avgPassion = total ? (records.reduce((s, r) => s + (r.passionScore || 0), 0) / total).toFixed(1) : '0';
+    
+    // 统计同一天多次记录的情况
+    const dateCount: Record<string, number> = {};
+    records.forEach((r) => {
+      dateCount[r.date] = (dateCount[r.date] || 0) + 1;
+    });
+    
+    // 找出有多次记录的天数
+    const multiRecordDays = Object.values(dateCount).filter(count => count > 1).length;
+    const maxRecordsInADay = Math.max(...Object.values(dateCount), 0);
+    
     const posCount: Record<string, number> = {};
     records.forEach((r) => {
       if (!r.position) return;
@@ -30,9 +54,55 @@ const DoiStats = ({ records }: Props) => {
         posCount[p] = (posCount[p] || 0) + 1;
       });
     });
+    
+    // 统计新字段
+    const sceneCount: Record<string, number> = {};
+    let femaleOrgasmCount = 0;
+    let oralSexCount = 0;
+    let oralExplosionCount = 0;
+    const ejaculationMethodCount: Record<string, number> = {};
+    
+    records.forEach((r) => {
+      if (r.scene) {
+        sceneCount[r.scene] = (sceneCount[r.scene] || 0) + 1;
+      }
+      
+      if (r.femaleOrgasm) {
+        femaleOrgasmCount++;
+      }
+      
+      if (r.oralSex) {
+        oralSexCount++;
+      }
+      
+      if (r.oralExplosion) {
+        oralExplosionCount++;
+      }
+      
+      if (r.ejaculationMethod) {
+        ejaculationMethodCount[r.ejaculationMethod] = (ejaculationMethodCount[r.ejaculationMethod] || 0) + 1;
+      }
+    });
+    
     const favPosition = Object.entries(posCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+    const favScene = Object.entries(sceneCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+    const favEjaculationMethod = Object.entries(ejaculationMethodCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
     const streak = calcStreak(records);
-    return { total, totalMin, avgPassion, favPosition, streak };
+    
+    return { 
+      total, 
+      totalMin, 
+      avgPassion, 
+      favPosition, 
+      streak,
+      multiRecordDays,
+      maxRecordsInADay,
+      femaleOrgasmCount,
+      oralSexCount,
+      oralExplosionCount,
+      favScene,
+      favEjaculationMethod
+    };
   }, [records]);
 
   const cards = [
@@ -41,6 +111,11 @@ const DoiStats = ({ records }: Props) => {
     { label: '连续天数', value: `${stats.streak} 天`, emoji: '🔥', bg: 'from-orange-100 to-amber-100 dark:from-orange-950/40 dark:to-amber-950/40' },
     { label: '平均激情', value: stats.avgPassion, emoji: '❤️‍🔥', bg: 'from-red-100 to-pink-100 dark:from-red-950/40 dark:to-pink-950/40' },
     { label: '最爱体位', value: stats.favPosition, emoji: '👑', bg: 'from-yellow-100 to-amber-100 dark:from-yellow-950/40 dark:to-amber-950/40' },
+    { label: '多记录天数', value: `${stats.multiRecordDays} 天`, emoji: '📅', bg: 'from-emerald-100 to-teal-100 dark:from-emerald-950/40 dark:to-teal-950/40' },
+    { label: '单日最多', value: `${stats.maxRecordsInADay} 次`, emoji: '🎯', bg: 'from-cyan-100 to-sky-100 dark:from-cyan-950/40 dark:to-sky-950/40' },
+    { label: '女性高潮', value: `${stats.femaleOrgasmCount} 次`, emoji: '♀️', bg: 'from-green-100 to-emerald-100 dark:from-green-950/40 dark:to-emerald-950/40' },
+    { label: '口交次数', value: `${stats.oralSexCount} 次`, emoji: '👄', bg: 'from-blue-100 to-indigo-100 dark:from-blue-950/40 dark:to-indigo-950/40' },
+    { label: '最爱场景', value: stats.favScene, emoji: '🏠', bg: 'from-purple-100 to-fuchsia-100 dark:from-purple-950/40 dark:to-fuchsia-950/40' },
   ];
 
   return (

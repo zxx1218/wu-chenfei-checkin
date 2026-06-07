@@ -1,13 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import type { DoiRecord, PartnerReview } from '@/hooks/useDoiRecords';
+import { Trash2 } from 'lucide-react';
+import { DoiRecord } from '@/hooks/useDoiRecords';
 import DoiReviewDialog from './DoiReviewDialog';
 
 interface Props {
   records: DoiRecord[];
   onDelete: (id: string) => void;
-  onSaveReview: (id: string, r: PartnerReview) => Promise<boolean>;
+  onSaveReview: (id: string, review: any) => void;
 }
 
 const DoiHistory = ({ records, onDelete, onSaveReview }: Props) => {
@@ -52,6 +52,13 @@ const DoiHistory = ({ records, onDelete, onSaveReview }: Props) => {
           <div className="font-medium">{r.date} · {r.time}</div>
           <div className="text-xs text-muted-foreground">
             {r.position || '—'} · {r.durationMinutes}分钟 · {'❤️'.repeat(Math.min(r.passionScore || 0, 10))}
+          </div>
+          {r.scene && <div className="text-xs text-muted-foreground">场景: {r.scene}</div>}
+          <div className="text-xs text-muted-foreground flex flex-wrap gap-2 mt-1">
+            {r.femaleOrgasm && <span className="text-green-600">♀️高潮</span>}
+            {r.oralSex && <span className="text-blue-600">👄口交</span>}
+            {r.oralExplosion && <span className="text-purple-600">💥口爆</span>}
+            {r.ejaculationMethod && <span className="text-orange-600">{r.ejaculationMethod}</span>}
           </div>
           {r.notes && <div className="text-xs text-muted-foreground mt-1 italic">"{r.notes}"</div>}
         </div>
@@ -102,12 +109,16 @@ const DoiHistory = ({ records, onDelete, onSaveReview }: Props) => {
           </ul>
         </div>
       </div>
-      <DoiReviewDialog
-        record={reviewing}
-        open={!!reviewing}
-        onOpenChange={(v) => !v && setReviewing(null)}
-        onSave={onSaveReview}
-      />
+      {reviewing && (
+        <DoiReviewDialog
+          record={reviewing}
+          onSave={(review) => {
+            onSaveReview(reviewing.id, review);
+            setReviewing(null);
+          }}
+          onClose={() => setReviewing(null)}
+        />
+      )}
     </div>
   );
 };

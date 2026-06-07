@@ -17,6 +17,11 @@ export interface DoiRecord {
   partnerComment?: string;
   partnerReviewer?: string;
   partnerReviewedAt?: string;
+  scene?: string;
+  femaleOrgasm?: boolean;
+  oralSex?: boolean;
+  oralExplosion?: boolean;
+  ejaculationMethod?: string;
 }
 
 export interface NewDoiRecord {
@@ -26,6 +31,11 @@ export interface NewDoiRecord {
   position?: string;
   passionScore?: number;
   notes?: string;
+  scene?: string;
+  femaleOrgasm?: boolean;
+  oralSex?: boolean;
+  oralExplosion?: boolean;
+  ejaculationMethod?: string;
 }
 
 export interface PartnerReview {
@@ -71,6 +81,11 @@ export function useDoiRecords() {
           partnerComment: r.partner_comment || undefined,
           partnerReviewer: r.partner_reviewer || undefined,
           partnerReviewedAt: r.partner_reviewed_at || undefined,
+          scene: r.scene || undefined,
+          femaleOrgasm: r.female_orgasm ?? undefined,
+          oralSex: r.oral_sex ?? undefined,
+          oralExplosion: r.oral_explosion ?? undefined,
+          ejaculationMethod: r.ejaculation_method || undefined,
         }))
       );
     }
@@ -98,6 +113,11 @@ export function useDoiRecords() {
       position: r.position || null,
       passion_score: r.passionScore ?? null,
       notes: r.notes || null,
+      scene: r.scene || null,
+      female_orgasm: r.femaleOrgasm ?? null,
+      oral_sex: r.oralSex ?? null,
+      oral_explosion: r.oralExplosion ?? null,
+      ejaculation_method: r.ejaculationMethod || null,
     });
     if (error) {
       console.error('Error adding doi record:', error);

@@ -55,6 +55,46 @@ const DoiCharts = ({ records }: Props) => {
     return Object.entries(m).map(([name, value]) => ({ name, value }));
   }, [records]);
 
+  // 新增：场景统计
+  const scenes = useMemo(() => {
+    const m: Record<string, number> = {};
+    records.forEach((r) => {
+      const scene = r.scene || '未填';
+      m[scene] = (m[scene] || 0) + 1;
+    });
+    return Object.entries(m).map(([name, value]) => ({ name, value }));
+  }, [records]);
+
+  // 新增：高潮统计
+  const orgasmStats = useMemo(() => {
+    const org = records.filter(r => r.femaleOrgasm).length;
+    const noOrg = records.length - org;
+    return [
+      { name: '达到高潮', value: org },
+      { name: '未达高潮', value: noOrg }
+    ];
+  }, [records]);
+
+  // 新增：口交统计
+  const oralStats = useMemo(() => {
+    const oral = records.filter(r => r.oralSex).length;
+    const noOral = records.length - oral;
+    return [
+      { name: '有口交', value: oral },
+      { name: '无口交', value: noOral }
+    ];
+  }, [records]);
+
+  // 新增：射精方式统计
+  const ejaculationMethods = useMemo(() => {
+    const m: Record<string, number> = {};
+    records.forEach((r) => {
+      const method = r.ejaculationMethod || '未填';
+      m[method] = (m[method] || 0) + 1;
+    });
+    return Object.entries(m).map(([name, value]) => ({ name, value }));
+  }, [records]);
+
   if (!records.length) {
     return <div className="text-center text-muted-foreground py-12">还没有数据呢，先添加一条记录吧~ 💕</div>;
   }
@@ -102,6 +142,56 @@ const DoiCharts = ({ records }: Props) => {
           <PieChart>
             <Pie data={positions} dataKey="value" nameKey="name" outerRadius={70} label>
               {positions.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </Card>
+
+      <Card title="场景分布" emoji="🏠">
+        <ResponsiveContainer>
+          <PieChart>
+            <Pie data={scenes} dataKey="value" nameKey="name" outerRadius={70} label>
+              {scenes.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </Card>
+
+      <Card title="高潮比例" emoji="✨">
+        <ResponsiveContainer>
+          <PieChart>
+            <Pie data={orgasmStats} dataKey="value" nameKey="name" outerRadius={70} label>
+              <Cell key={0} fill="#10b981" />
+              <Cell key={1} fill="#ef4444" />
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </Card>
+
+      <Card title="口交分布" emoji="👄">
+        <ResponsiveContainer>
+          <PieChart>
+            <Pie data={oralStats} dataKey="value" nameKey="name" outerRadius={70} label>
+              <Cell key={0} fill="#3b82f6" />
+              <Cell key={1} fill="#94a3b8" />
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </Card>
+
+      <Card title="射精方式" emoji="💧">
+        <ResponsiveContainer>
+          <PieChart>
+            <Pie data={ejaculationMethods} dataKey="value" nameKey="name" outerRadius={70} label>
+              {ejaculationMethods.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
             </Pie>
             <Tooltip />
             <Legend />
