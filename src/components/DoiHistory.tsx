@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import { DoiRecord } from '@/hooks/useDoiRecords';
+import { DoiRecord, PartnerReview } from '@/hooks/useDoiRecords';
 import DoiReviewDialog from './DoiReviewDialog';
 
 interface Props {
   records: DoiRecord[];
   onDelete: (id: string) => void;
-  onSaveReview: (id: string, review: any) => void;
+  onSaveReview: (id: string, review: PartnerReview) => Promise<boolean>;
 }
 
 const DoiHistory = ({ records, onDelete, onSaveReview }: Props) => {
@@ -109,16 +109,12 @@ const DoiHistory = ({ records, onDelete, onSaveReview }: Props) => {
           </ul>
         </div>
       </div>
-      {reviewing && (
-        <DoiReviewDialog
-          record={reviewing}
-          onSave={(review) => {
-            onSaveReview(reviewing.id, review);
-            setReviewing(null);
-          }}
-          onClose={() => setReviewing(null)}
-        />
-      )}
+      <DoiReviewDialog
+        record={reviewing}
+        open={!!reviewing}
+        onOpenChange={(v) => !v && setReviewing(null)}
+        onSave={onSaveReview}
+      />
     </div>
   );
 };
