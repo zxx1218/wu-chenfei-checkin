@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import { DoiRecord } from '@/hooks/useDoiRecords';
+import { DoiRecord, PartnerReview } from '@/hooks/useDoiRecords';
 import DoiReviewDialog from './DoiReviewDialog';
 
 interface Props {
   records: DoiRecord[];
   onDelete: (id: string) => void;
-  onSaveReview: (id: string, review: any) => void;
+  onSaveReview: (id: string, review: PartnerReview) => Promise<boolean>;
 }
 
 const DoiHistory = ({ records, onDelete, onSaveReview }: Props) => {
