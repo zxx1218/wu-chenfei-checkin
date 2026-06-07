@@ -49,8 +49,12 @@ export type Database = {
           created_at: string
           date: string
           duration_minutes: number
+          ejaculation_method: string | null
+          female_orgasm: boolean | null
           id: string
           notes: string | null
+          oral_explosion: boolean | null
+          oral_sex: boolean | null
           partner_comment: string | null
           partner_duration_feedback: string | null
           partner_overall_score: number | null
@@ -60,14 +64,19 @@ export type Database = {
           partner_reviewer: string | null
           passion_score: number | null
           position: string | null
+          scene: string | null
           time: string
         }
         Insert: {
           created_at?: string
           date: string
           duration_minutes?: number
+          ejaculation_method?: string | null
+          female_orgasm?: boolean | null
           id?: string
           notes?: string | null
+          oral_explosion?: boolean | null
+          oral_sex?: boolean | null
           partner_comment?: string | null
           partner_duration_feedback?: string | null
           partner_overall_score?: number | null
@@ -77,14 +86,19 @@ export type Database = {
           partner_reviewer?: string | null
           passion_score?: number | null
           position?: string | null
+          scene?: string | null
           time: string
         }
         Update: {
           created_at?: string
           date?: string
           duration_minutes?: number
+          ejaculation_method?: string | null
+          female_orgasm?: boolean | null
           id?: string
           notes?: string | null
+          oral_explosion?: boolean | null
+          oral_sex?: boolean | null
           partner_comment?: string | null
           partner_duration_feedback?: string | null
           partner_overall_score?: number | null
@@ -94,6 +108,7 @@ export type Database = {
           partner_reviewer?: string | null
           passion_score?: number | null
           position?: string | null
+          scene?: string | null
           time?: string
         }
         Relationships: []
