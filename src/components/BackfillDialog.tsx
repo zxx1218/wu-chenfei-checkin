@@ -23,7 +23,8 @@ import {
 import { MilkteaBrandSelect } from '@/components/MilkteaBrandSelect';
 import PositionMultiSelect from '@/components/PositionMultiSelect';
 import { Slider } from '@/components/ui/slider';
-import { supabase } from '@/integrations/supabase/client';
+import { Checkbox } from '@/components/ui/checkbox'; // 添加Checkbox导入
+import { bumpApi, milkteaApi, doiApi } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { SeverityLevel } from '@/types/record';
 import { Wrench } from 'lucide-react';
@@ -67,12 +68,26 @@ const BackfillDialog = () => {
   const [mtType, setMtType] = useState<'milktea' | 'no_milktea'>('milktea');
   const [brand, setBrand] = useState('');
   const [drinkName, setDrinkName] = useState('');
+  // 添加奶茶图片字段
+  const [image, setImage] = useState<string | null>(null);
 
   // doi
   const [duration, setDuration] = useState(30);
   const [positions, setPositions] = useState<string[]>(['传教士']);
   const [passion, setPassion] = useState(8);
   const [notes, setNotes] = useState('');
+  // 添加DOI新字段
+  const [oralSex, setOralSex] = useState(false);
+  const [femaleOrgasm, setFemaleOrgasm] = useState(false);
+  const [oralExplosion, setOralExplosion] = useState(false);
+  const [ejaculationMethod, setEjaculationMethod] = useState('');
+  const [scene, setScene] = useState('');
+  const [partnerOverallScore, setPartnerOverallScore] = useState<number | null>(null);
+  const [partnerPassionScore, setPartnerPassionScore] = useState<number | null>(null);
+  const [partnerDurationFeedback, setPartnerDurationFeedback] = useState('');
+  const [partnerPositionFeedback, setPartnerPositionFeedback] = useState('');
+  const [partnerComment, setPartnerComment] = useState('');
+  const [partnerReviewer, setPartnerReviewer] = useState('');
 
   const reset = () => {
     setDate(todayISO());
@@ -83,10 +98,22 @@ const BackfillDialog = () => {
     setMtType('milktea');
     setBrand('');
     setDrinkName('');
+    setImage(null);
     setDuration(30);
     setPositions(['传教士']);
     setPassion(8);
     setNotes('');
+    setOralSex(false);
+    setFemaleOrgasm(false);
+    setOralExplosion(false);
+    setEjaculationMethod('');
+    setScene('');
+    setPartnerOverallScore(null);
+    setPartnerPassionScore(null);
+    setPartnerDurationFeedback('');
+    setPartnerPositionFeedback('');
+    setPartnerComment('');
+    setPartnerReviewer('');
   };
 
   const submitBump = async () => {
@@ -94,54 +121,67 @@ const BackfillDialog = () => {
       toast({ title: '请填写碰到的位置', variant: 'destructive' });
       return;
     }
-    const { error } = await supabase.from('bump_records').insert({
-      date: isoToZhDate(date),
-      time: hmToZhTime(time),
-      type: bumpType,
-      location: bumpType === 'bump' ? location.trim() : null,
-      severity: bumpType === 'bump' ? severity : null,
-    });
-    if (error) {
-      toast({ title: '补录失败', description: error.message, variant: 'destructive' });
-    } else {
+    try {
+      await bumpApi.create({
+        date: isoToZhDate(date),
+        time: hmToZhTime(time),
+        type: bumpType,
+        location: bumpType === 'bump' ? location.trim() : null,
+        severity: bumpType === 'bump' ? severity : null,
+      });
       toast({ title: '补录成功 🩹', description: '已添加到磕碰记录' });
       reset();
       setOpen(false);
+    } catch (error: any) {
+      toast({ title: '补录失败', description: error.message, variant: 'destructive' });
     }
   };
 
   const submitMilktea = async () => {
-    const { error } = await supabase.from('milktea_records').insert({
-      date: isoToZhDate(date),
-      time: hmToZhTime(time),
-      type: mtType,
-      brand: mtType === 'milktea' ? brand.trim() || null : null,
-      drink_name: mtType === 'milktea' ? drinkName.trim() || null : null,
-    });
-    if (error) {
-      toast({ title: '补录失败', description: error.message, variant: 'destructive' });
-    } else {
+    try {
+      await milkteaApi.create({
+        date: isoToZhDate(date),
+        time: hmToZhTime(time),
+        type: mtType,
+        brand: mtType === 'milktea' ? brand.trim() || null : null,
+        drink_name: mtType === 'milktea' ? drinkName.trim() || null : null,
+        image: image || null, // 添加图片字段
+      });
       toast({ title: '补录成功 🧋', description: '已添加到奶茶记录' });
       reset();
       setOpen(false);
+    } catch (error: any) {
+      toast({ title: '补录失败', description: error.message, variant: 'destructive' });
     }
   };
 
   const submitDoi = async () => {
-    const { error } = await supabase.from('doi_records').insert({
-      date,
-      time,
-      duration_minutes: duration,
-      position: positions.length ? positions.join('、') : null,
-      passion_score: passion,
-      notes: notes.trim() || null,
-    });
-    if (error) {
-      toast({ title: '补录失败', description: error.message, variant: 'destructive' });
-    } else {
+    try {
+      await doiApi.create({
+        date,
+        time,
+        duration_minutes: duration,
+        position: positions.length ? positions.join('、') : null,
+        passion_score: passion,
+        notes: notes.trim() || null,
+        // 添加新字段
+        oral_sex: oralSex,
+        female_orgasm: femaleOrgasm,
+        oral_explosion: oralExplosion,
+        ejaculation_method: ejaculationMethod.trim() || null,
+        scene: scene.trim() || null,
+        partner_overall_score: partnerOverallScore,
+        partner_passion_score: partnerPassionScore,
+        partner_duration_feedback: partnerDurationFeedback.trim() || null,
+        partner_position_feedback: partnerPositionFeedback.trim() || null,
+        partner_comment: partnerComment.trim() || null,
+        partner_reviewer: partnerReviewer.trim() || null,
+      });
       toast({ title: '补录成功 💖', description: '已添加到 doi 记录' });
       reset();
       setOpen(false);
+    } catch (error: any) {
+      toast({ title: '补录失败', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -262,6 +302,16 @@ const BackfillDialog = () => {
                     maxLength={50}
                   />
                 </div>
+                {/* 添加图片字段输入框 */}
+                <div>
+                  <Label>图片链接（可选）</Label>
+                  <Input
+                    placeholder="请输入图片链接"
+                    value={image || ''}
+                    onChange={(e) => setImage(e.target.value || null)}
+                    maxLength={500}
+                  />
+                </div>
               </>
             )}
             <DialogFooter>
@@ -307,6 +357,120 @@ const BackfillDialog = () => {
                 maxLength={500}
               />
             </div>
+            
+            {/* 新增的DOI字段 */}
+            <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="oral-sex"
+                  checked={oralSex}
+                  onCheckedChange={setOralSex}
+                />
+                <Label htmlFor="oral-sex">口交</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="female-orgasm"
+                  checked={femaleOrgasm}
+                  onCheckedChange={setFemaleOrgasm}
+                />
+                <Label htmlFor="female-orgasm">女性高潮</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="oral-explosion"
+                  checked={oralExplosion}
+                  onCheckedChange={setOralExplosion}
+                />
+                <Label htmlFor="oral-explosion">口爆</Label>
+              </div>
+            </div>
+            
+            <div>
+              <Label>射精方式</Label>
+              <Input
+                placeholder="例如：内射、外射、戴套"
+                value={ejaculationMethod}
+                onChange={(e) => setEjaculationMethod(e.target.value)}
+                maxLength={100}
+              />
+            </div>
+            
+            <div>
+              <Label>场景</Label>
+              <Input
+                placeholder="例如：家中卧室、酒店、户外"
+                value={scene}
+                onChange={(e) => setScene(e.target.value)}
+                maxLength={200}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>伴侣整体评分</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="10"
+                  placeholder="1-10分"
+                  value={partnerOverallScore ?? ''}
+                  onChange={(e) => setPartnerOverallScore(e.target.value ? Number(e.target.value) : null)}
+                />
+              </div>
+              <div>
+                <Label>伴侣激情评分</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="10"
+                  placeholder="1-10分"
+                  value={partnerPassionScore ?? ''}
+                  onChange={(e) => setPartnerPassionScore(e.target.value ? Number(e.target.value) : null)}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label>伴侣时长反馈</Label>
+              <Input
+                placeholder="伴侣对时长的感受"
+                value={partnerDurationFeedback}
+                onChange={(e) => setPartnerDurationFeedback(e.target.value)}
+                maxLength={200}
+              />
+            </div>
+            
+            <div>
+              <Label>伴侣体位反馈</Label>
+              <Input
+                placeholder="伴侣对体位的感受"
+                value={partnerPositionFeedback}
+                onChange={(e) => setPartnerPositionFeedback(e.target.value)}
+                maxLength={200}
+              />
+            </div>
+            
+            <div>
+              <Label>伴侣评论</Label>
+              <Textarea
+                value={partnerComment}
+                onChange={(e) => setPartnerComment(e.target.value)}
+                placeholder="伴侣的评价"
+                maxLength={500}
+              />
+            </div>
+            
+            <div>
+              <Label>伴侣评审员</Label>
+              <Input
+                placeholder="评审员姓名"
+                value={partnerReviewer}
+                onChange={(e) => setPartnerReviewer(e.target.value)}
+                maxLength={100}
+              />
+            </div>
+            
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
               <Button onClick={submitDoi}>补录</Button>

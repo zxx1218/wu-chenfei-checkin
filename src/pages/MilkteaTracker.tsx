@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMilkteaRecords } from '@/hooks/useMilkteaRecords';
-import { CalendarDays, Coffee, SmilePlus, Trash2, ArrowLeft } from 'lucide-react';
+import { CalendarDays, Coffee, SmilePlus, Trash2, ArrowLeft, Camera, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +10,7 @@ import { MilkteaBrandSelect } from '@/components/MilkteaBrandSelect';
 import { MilkteaBrandChart } from '@/components/MilkteaBrandChart';
 import { MilkteaHealthChart } from '@/components/MilkteaHealthChart';
 import { MilkteaBudget } from '@/components/MilkteaBudget';
+import { ImageDialog } from '@/components/ImageDialog';
 import { Link } from 'react-router-dom';
 
 const MilkteaTracker = () => {
@@ -17,7 +18,11 @@ const MilkteaTracker = () => {
   const { toast } = useToast();
   const [brand, setBrand] = useState('');
   const [drinkName, setDrinkName] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [viewingImage, setViewingImage] = useState<string>('');
 
   const today = new Date().toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -31,11 +36,13 @@ const MilkteaTracker = () => {
       toast({ title: '今天已经打卡"今日很乖"啦！', description: '不能再记录喝奶茶了哦~', variant: 'destructive' });
       return;
     }
-    const success = await addMilkteaRecord(brand, drinkName);
+    const success = await addMilkteaRecord(brand, drinkName, selectedImage || undefined);
     if (success) {
-      toast({ title: '🧋 奶茶记录成功！', description: `${brand ? brand + ' - ' : ''}${drinkName || '一杯奶茶'}` });
+      toast({ title: '🧋 奶茶记录成功！', description: `${brand ? brand + ' - ' : ''}${drinkName || '一杯奶茶'}${selectedImage ? ' 📷' : ''}` });
       setBrand('');
       setDrinkName('');
+      setSelectedImage(null);
+      setPreviewImage(null);
     }
   };
 
@@ -60,6 +67,50 @@ const MilkteaTracker = () => {
     if (success) {
       toast({ title: '记录已删除' });
     }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 检查文件大小（限制为 5MB）
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ 
+        title: '图片太大', 
+        description: '请选择小于 5MB 的图片',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+      toast({ 
+        title: '无效的文件类型', 
+        description: '请选择图片文件',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    // 读取文件并转换为 base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setSelectedImage(base64String);
+      setPreviewImage(base64String);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    setPreviewImage(null);
+  };
+
+  const handleViewImage = (imageUrl: string) => {
+    setViewingImage(imageUrl);
+    setImageDialogOpen(true);
   };
 
   // Stats
@@ -110,6 +161,40 @@ const MilkteaTracker = () => {
                   value={drinkName}
                   onChange={(e) => setDrinkName(e.target.value)}
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">奶茶照片（可选）</label>
+                <div className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleImageSelect}
+                      className="cursor-pointer"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      支持拍照或从相册选择，图片大小不超过 5MB
+                    </p>
+                  </div>
+                  {previewImage && (
+                    <div className="relative">
+                      <img
+                        src={previewImage}
+                        alt="预览"
+                        className="w-16 h-16 object-cover rounded-lg border border-border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                        onClick={clearImage}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex gap-3">
                 <Button
@@ -197,15 +282,26 @@ const MilkteaTracker = () => {
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {records.map(record => (
                 <div key={record.id} className="flex items-center justify-between bg-accent/30 rounded-2xl px-4 py-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1">
                     <span className="text-xl">{record.type === 'milktea' ? '🧋' : '🌟'}</span>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {record.type === 'milktea'
                           ? `${record.brand ? record.brand + ' - ' : ''}${record.drinkName || '奶茶'}`
                           : '今日很乖'}
                       </p>
                       <p className="text-xs text-muted-foreground">{record.date} {record.time}</p>
+                      {record.image && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 mt-1 text-xs"
+                          onClick={() => handleViewImage(record.image!)}
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 mr-1" />
+                          查看奶茶图片
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <Button
@@ -222,6 +318,14 @@ const MilkteaTracker = () => {
           )}
         </section>
       </div>
+
+      {/* Image Dialog */}
+      <ImageDialog
+        open={imageDialogOpen}
+        onOpenChange={setImageDialogOpen}
+        imageUrl={viewingImage}
+        title="奶茶照片"
+      />
     </div>
   );
 };

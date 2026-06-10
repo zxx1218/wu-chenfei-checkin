@@ -1,15 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Settings2 } from 'lucide-react';
+import { userSettingsApi } from '@/lib/api';
 import type { MilkteaRecord } from '@/hooks/useMilkteaRecords';
 
 interface Props {
   records: MilkteaRecord[];
 }
 
-const STORAGE_KEY = 'milktea_weekly_budget';
+const SETTINGS_KEY = 'milktea_weekly_budget';
 
 const getWeekRange = () => {
   const now = new Date();
@@ -24,12 +25,35 @@ const getWeekRange = () => {
 };
 
 export const MilkteaBudget = ({ records }: Props) => {
-  const [budget, setBudget] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? parseInt(saved, 10) : 5;
-  });
+  const [budget, setBudget] = useState(5);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [tempBudget, setTempBudget] = useState(budget);
+
+  // 从后端加载预算设置
+  useEffect(() => {
+    const loadBudget = async () => {
+      try {
+        const response = await userSettingsApi.getByKey(SETTINGS_KEY);
+        if (response && response.data) {
+          const savedBudget = parseInt(response.data.value, 10);
+          if (!isNaN(savedBudget)) {
+            setBudget(savedBudget);
+            setTempBudget(savedBudget);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load budget:', error);
+        // 如果获取失败，使用默认值5
+        setBudget(5);
+        setTempBudget(5);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBudget();
+  }, []);
 
   const weekCups = useMemo(() => {
     const { monday, sunday } = getWeekRange();
@@ -44,10 +68,15 @@ export const MilkteaBudget = ({ records }: Props) => {
   const remaining = Math.max(budget - weekCups, 0);
   const over = weekCups > budget;
 
-  const saveBudget = () => {
-    setBudget(tempBudget);
-    localStorage.setItem(STORAGE_KEY, String(tempBudget));
-    setEditing(false);
+  const saveBudget = async () => {
+    try {
+      await userSettingsApi.set(SETTINGS_KEY, tempBudget);
+      setBudget(tempBudget);
+      setEditing(false);
+    } catch (error) {
+      console.error('Failed to save budget:', error);
+      // 保存失败时显示提示（可选）
+    }
   };
 
   return (

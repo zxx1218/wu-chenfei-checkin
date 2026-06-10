@@ -8,7 +8,7 @@ import DoiSummaryTable from '@/components/DoiSummaryTable';
 import DoiHistory from '@/components/DoiHistory';
 
 const DoiTracker = () => {
-  const { records, loading, addRecord, deleteRecord, saveReview } = useDoiRecords();
+  const { records, loading, addRecord, deleteRecord, saveReview, updateRecord } = useDoiRecords();
 
   return (
     <div className="min-h-screen bg-background">
@@ -35,7 +35,12 @@ const DoiTracker = () => {
             <DoiStats records={records} />
             <DoiCharts records={records} />
             <DoiSummaryTable records={records} />
-            <DoiHistory records={records} onDelete={deleteRecord} onSaveReview={saveReview} />
+            <DoiHistory 
+              records={records} 
+              onDelete={deleteRecord} 
+              onSaveReview={saveReview} 
+              onEdit={updateRecord} 
+            />
           </div>
         )}
       </div>

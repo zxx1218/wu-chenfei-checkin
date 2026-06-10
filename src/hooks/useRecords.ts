@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { BumpRecord, SeverityLevel } from '@/types/record';
-import { supabase } from '@/integrations/supabase/client';
+import { bumpApi } from '@/lib/api';
 
 export function useRecords() {
   const [allRecords, setAllRecords] = useState<BumpRecord[]>([]);
@@ -50,26 +50,28 @@ export function useRecords() {
 
   // Fetch all records from database
   const fetchRecords = async () => {
-    const { data, error } = await supabase
-      .from('bump_records')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const data = await bumpApi.getAll();
 
-    if (error) {
+      console.log('Bump API Response:', data);
+
+      if (data && data.data && Array.isArray(data.data)) {
+        setAllRecords(data.data.map((record: any) => ({
+          id: record.id,
+          date: record.date,
+          time: record.time,
+          type: record.type as 'bump' | 'safe',
+          location: record.location || undefined,
+          severity: record.severity as SeverityLevel | undefined,
+          createdAt: record.created_at,
+        })));
+      } else {
+        setAllRecords([]);
+      }
+    } catch (error) {
       console.error('Error fetching records:', error);
-      return;
-    }
-
-    if (data) {
-      setAllRecords(data.map(record => ({
-        id: record.id,
-        date: record.date,
-        time: record.time,
-        type: record.type as 'bump' | 'safe',
-        location: record.location || undefined,
-        severity: record.severity as SeverityLevel | undefined,
-        createdAt: record.created_at,
-      })));
+      console.error('Error details:', error);
+      setAllRecords([]);
     }
     setLoading(false);
   };
@@ -103,25 +105,12 @@ export function useRecords() {
 
   useEffect(() => {
     fetchRecords();
-
-    // Subscribe to realtime changes
-    const channel = supabase
-      .channel('bump_records_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bump_records',
-        },
-        () => {
-          fetchRecords();
-        }
-      )
-      .subscribe();
-
+    
+    // 设置定时器刷新数据，模拟实时更新
+    const interval = setInterval(fetchRecords, 30000); // 每30秒刷新一次
+    
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 
@@ -135,15 +124,13 @@ export function useRecords() {
       severity,
     };
 
-    const { error } = await supabase
-      .from('bump_records')
-      .insert(newRecord);
-
-    if (error) {
+    try {
+      await bumpApi.create(newRecord);
+      return true;
+    } catch (error) {
       console.error('Error adding bump record:', error);
       return false;
     }
-    return true;
   };
 
   const addSafeRecord = async (): Promise<{ success: boolean; alreadyCheckedIn: boolean }> => {
@@ -159,53 +146,24 @@ export function useRecords() {
       type: 'safe' as const,
     };
 
-    const { error } = await supabase
-      .from('bump_records')
-      .insert(newRecord);
-
-    if (error) {
+    try {
+      await bumpApi.create(newRecord);
+      return { success: true, alreadyCheckedIn: false };
+    } catch (error) {
       console.error('Error adding safe record:', error);
       return { success: false, alreadyCheckedIn: false };
     }
-    return { success: true, alreadyCheckedIn: false };
   };
 
   const deleteRecord = async (id: string) => {
-    const { error } = await supabase
-      .from('bump_records')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
+    try {
+      await bumpApi.delete(id);
+      setAllRecords(prev => prev.filter(r => r.id !== id));
+      return true;
+    } catch (error) {
       console.error('Error deleting record:', error);
       return false;
     }
-    
-    // Update local state immediately
-    setAllRecords(prev => prev.filter(record => record.id !== id));
-    return true;
-  };
-
-  const updateRecord = async (
-    id: string,
-    patch: { location?: string | null; severity?: SeverityLevel | null }
-  ) => {
-    const { error } = await supabase
-      .from('bump_records')
-      .update({
-        location: patch.location ?? null,
-        severity: patch.severity ?? null,
-      })
-      .eq('id', id);
-    if (error) {
-      console.error('Error updating record:', error);
-      return false;
-    }
-    return true;
-  };
-
-  const setFilterDateRange = (range: { from: Date | undefined; to: Date | undefined }) => {
-    setDateRange(range);
   };
 
   return {
@@ -215,10 +173,9 @@ export function useRecords() {
     addBumpRecord,
     addSafeRecord,
     deleteRecord,
-    updateRecord,
-    setFilterDateRange,
-    dateRange,
     hasSafeRecordToday,
     safeStreak,
+    dateRange,
+    setDateRange,
   };
 }

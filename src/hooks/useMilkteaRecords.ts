@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { milkteaApi } from '@/lib/api';
 
 export interface MilkteaRecord {
   id: string;
@@ -8,6 +8,7 @@ export interface MilkteaRecord {
   type: 'milktea' | 'no_milktea';
   brand?: string;
   drinkName?: string;
+  image?: string;
   createdAt?: string;
 }
 
@@ -30,62 +31,66 @@ export function useMilkteaRecords() {
   }, [allRecords]);
 
   const fetchRecords = async () => {
-    const { data, error } = await supabase
-      .from('milktea_records')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const data = await milkteaApi.getAll();
+      
+      console.log('API Response:', data);
 
-    if (error) {
+      if (data && data.data && Array.isArray(data.data)) {
+        setAllRecords(data.data.map((record: any) => ({
+          id: record.id,
+          date: record.date,
+          time: record.time,
+          type: record.type as 'milktea' | 'no_milktea',
+          brand: record.brand || undefined,
+          drinkName: record.drink_name || undefined,
+          image: record.image || undefined,
+          createdAt: record.created_at,
+        })));
+      } else {
+        setAllRecords([]);
+      }
+    } catch (error) {
       console.error('Error fetching milktea records:', error);
-      return;
-    }
-
-    if (data) {
-      setAllRecords(data.map(record => ({
-        id: record.id,
-        date: record.date,
-        time: record.time,
-        type: record.type as 'milktea' | 'no_milktea',
-        brand: record.brand || undefined,
-        drinkName: record.drink_name || undefined,
-        createdAt: record.created_at,
-      })));
+      console.error('Error details:', error);
+      setAllRecords([]);
     }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchRecords();
-
-    const channel = supabase
-      .channel('milktea_records_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'milktea_records' }, () => {
-        fetchRecords();
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    
+    // 设置定时器刷新数据，模拟实时更新
+    const interval = setInterval(fetchRecords, 30000); // 每30秒刷新一次
+    
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
-  const addMilkteaRecord = async (brand?: string, drinkName?: string) => {
+  const addMilkteaRecord = async (brand?: string, drinkName?: string, image?: string) => {
     if (hasNoMilkteaToday) return false;
 
     const now = new Date();
-    const { error } = await supabase
-      .from('milktea_records')
-      .insert({
-        date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
-        time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-        type: 'milktea',
-        brand: brand || null,
-        drink_name: drinkName || null,
-      });
+    const record = {
+      date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
+      time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+      type: 'milktea',
+      brand: brand || null,
+      drink_name: drinkName || null,
+      image: image || null,
+    };
 
-    if (error) {
+    try {
+      await milkteaApi.create(record);
+      // Refresh the records
+      fetchRecords();
+      return true;
+    } catch (error) {
       console.error('Error adding milktea record:', error);
       return false;
     }
-    return true;
   };
 
   const addNoMilkteaRecord = async (): Promise<{ success: boolean; alreadyCheckedIn: boolean }> => {
@@ -93,33 +98,33 @@ export function useMilkteaRecords() {
     if (todayMilkteaCount > 0) return { success: false, alreadyCheckedIn: false };
 
     const now = new Date();
-    const { error } = await supabase
-      .from('milktea_records')
-      .insert({
-        date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
-        time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-        type: 'no_milktea',
-      });
+    const record = {
+      date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
+      time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+      type: 'no_milktea',
+    };
 
-    if (error) {
+    try {
+      await milkteaApi.create(record);
+      // Refresh the records
+      fetchRecords();
+      return { success: true, alreadyCheckedIn: false };
+    } catch (error) {
       console.error('Error adding no milktea record:', error);
       return { success: false, alreadyCheckedIn: false };
     }
-    return { success: true, alreadyCheckedIn: false };
   };
 
   const deleteRecord = async (id: string) => {
-    const { error } = await supabase
-      .from('milktea_records')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
+    try {
+      await milkteaApi.delete(id);
+      // Refresh the records
+      fetchRecords();
+      return true;
+    } catch (error) {
       console.error('Error deleting milktea record:', error);
       return false;
     }
-    setAllRecords(prev => prev.filter(r => r.id !== id));
-    return true;
   };
 
   return {

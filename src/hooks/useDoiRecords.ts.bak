@@ -38,7 +38,6 @@ export interface NewDoiRecord {
   oralExplosion?: boolean;
   ejaculationMethod?: string;
   videoUrl?: string; // 添加视频URL字段
-  videoFile?: File; // 添加视频文件字段
 }
 
 export interface PartnerReview {
@@ -100,38 +99,20 @@ export function useDoiRecords() {
 
   const addRecord = async (r: NewDoiRecord) => {
     try {
-      // 检查是否包含视频文件，如果是则使用FormData方式上传
-      if (r.videoFile && r.videoFile instanceof File) {
-        await doiApi.create({
-          date: r.date,
-          time: r.time,
-          duration_minutes: r.durationMinutes,
-          position: r.position || null,
-          passion_score: r.passionScore ?? null,
-          notes: r.notes || null,
-          scene: r.scene || null,
-          female_orgasm: r.femaleOrgasm ?? null,
-          oral_sex: r.oralSex ?? null,
-          oral_explosion: r.oralExplosion ?? null,
-          ejaculation_method: r.ejaculationMethod || null,
-          videoFile: r.videoFile, // 传递视频文件
-        });
-      } else {
-        await doiApi.create({
-          date: r.date,
-          time: r.time,
-          duration_minutes: r.durationMinutes,
-          position: r.position || null,
-          passion_score: r.passionScore ?? null,
-          notes: r.notes || null,
-          scene: r.scene || null,
-          female_orgasm: r.femaleOrgasm ?? null,
-          oral_sex: r.oralSex ?? null,
-          oral_explosion: r.oralExplosion ?? null,
-          ejaculation_method: r.ejaculationMethod || null,
-          video_url: r.videoUrl || null, // 添加视频URL参数
-        });
-      }
+      await doiApi.create({
+        date: r.date,
+        time: r.time,
+        duration_minutes: r.durationMinutes,
+        position: r.position || null,
+        passion_score: r.passionScore ?? null,
+        notes: r.notes || null,
+        scene: r.scene || null,
+        female_orgasm: r.femaleOrgasm ?? null,
+        oral_sex: r.oralSex ?? null,
+        oral_explosion: r.oralExplosion ?? null,
+        ejaculation_method: r.ejaculationMethod || null,
+        video_url: r.videoUrl || null, // 添加视频URL参数
+      });
       // Refresh the records
       fetchRecords();
       return true;
