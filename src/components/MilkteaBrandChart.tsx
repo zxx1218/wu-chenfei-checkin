@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
 import type { MilkteaRecord } from '@/hooks/useMilkteaRecords';
 
 const COLORS = [
@@ -13,14 +13,26 @@ const COLORS = [
   'hsl(10, 70%, 55%)',
 ];
 
+const DRINKER_COLORS = {
+  '小菲': 'hsl(340, 75%, 55%)',
+  'zxx': 'hsl(200, 70%, 50%)',
+};
+
 interface Props {
   records: MilkteaRecord[];
+  drinker?: string; // 可选，指定查看某个人的数据
 }
 
-export const MilkteaBrandChart = ({ records }: Props) => {
+export const MilkteaBrandChart = ({ records, drinker }: Props) => {
   const data = useMemo(() => {
+    // 如果指定了drinker，只统计该人的数据
+    let filteredRecords = records;
+    if (drinker) {
+      filteredRecords = records.filter(r => r.drinker === drinker);
+    }
+
     const brandMap: Record<string, number> = {};
-    records
+    filteredRecords
       .filter(r => r.type === 'milktea')
       .forEach(r => {
         const brand = r.brand || '未标注';
@@ -29,7 +41,7 @@ export const MilkteaBrandChart = ({ records }: Props) => {
     return Object.entries(brandMap)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
-  }, [records]);
+  }, [records, drinker]);
 
   if (data.length === 0) {
     return <p className="text-center text-muted-foreground py-4">还没有奶茶记录~</p>;

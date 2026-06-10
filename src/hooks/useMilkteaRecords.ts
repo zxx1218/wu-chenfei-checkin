@@ -21,6 +21,7 @@ export function useMilkteaRecords() {
     return new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
+  // 整体统计（保持原有功能）
   const hasNoMilkteaToday = useMemo(() => {
     const todayStr = getTodayDateString();
     return allRecords.some(r => r.type === 'no_milktea' && r.date === todayStr);
@@ -30,6 +31,25 @@ export function useMilkteaRecords() {
     const todayStr = getTodayDateString();
     return allRecords.filter(r => r.type === 'milktea' && r.date === todayStr).length;
   }, [allRecords]);
+
+  // 按人判断的辅助函数
+  const hasPersonNoMilkteaToday = (drinker: '小菲' | 'zxx') => {
+    const todayStr = getTodayDateString();
+    return allRecords.some(r => 
+      r.type === 'no_milktea' && 
+      r.date === todayStr && 
+      r.drinker === drinker
+    );
+  };
+
+  const getPersonMilkteaCountToday = (drinker: '小菲' | 'zxx') => {
+    const todayStr = getTodayDateString();
+    return allRecords.filter(r => 
+      r.type === 'milktea' && 
+      r.date === todayStr && 
+      r.drinker === drinker
+    ).length;
+  };
 
   const fetchRecords = async () => {
     try {
@@ -72,7 +92,14 @@ export function useMilkteaRecords() {
   }, []);
 
   const addMilkteaRecord = async (brand?: string, drinkName?: string, image?: string, drinker?: '小菲' | 'zxx') => {
-    if (hasNoMilkteaToday) return false;
+    // 如果指定了drinker，只检查该人是否已打卡"今日很乖"
+    if (drinker && hasPersonNoMilkteaToday(drinker)) {
+      return false;
+    }
+    // 如果没有指定drinker，检查整体是否有"今日很乖"记录
+    if (!drinker && hasNoMilkteaToday) {
+      return false;
+    }
 
     const now = new Date();
     const record = {
@@ -96,15 +123,31 @@ export function useMilkteaRecords() {
     }
   };
 
-  const addNoMilkteaRecord = async (): Promise<{ success: boolean; alreadyCheckedIn: boolean }> => {
-    if (hasNoMilkteaToday) return { success: false, alreadyCheckedIn: true };
-    if (todayMilkteaCount > 0) return { success: false, alreadyCheckedIn: false };
+  const addNoMilkteaRecord = async (drinker?: '小菲' | 'zxx'): Promise<{ success: boolean; alreadyCheckedIn: boolean }> => {
+    // 如果指定了drinker，检查该人是否已打卡"今日很乖"
+    if (drinker && hasPersonNoMilkteaToday(drinker)) {
+      return { success: false, alreadyCheckedIn: true };
+    }
+    // 如果没有指定drinker，检查整体是否有"今日很乖"记录
+    if (!drinker && hasNoMilkteaToday) {
+      return { success: false, alreadyCheckedIn: true };
+    }
+
+    // 如果指定了drinker，检查该人今天是否已喝奶茶
+    if (drinker && getPersonMilkteaCountToday(drinker) > 0) {
+      return { success: false, alreadyCheckedIn: false };
+    }
+    // 如果没有指定drinker，检查整体是否有喝奶茶记录
+    if (!drinker && todayMilkteaCount > 0) {
+      return { success: false, alreadyCheckedIn: false };
+    }
 
     const now = new Date();
     const record = {
       date: now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }),
       time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
       type: 'no_milktea',
+      drinker: drinker || null, // 添加drinker字段
     };
 
     try {
@@ -138,5 +181,7 @@ export function useMilkteaRecords() {
     deleteRecord,
     hasNoMilkteaToday,
     todayMilkteaCount,
+    hasPersonNoMilkteaToday,
+    getPersonMilkteaCountToday,
   };
 }

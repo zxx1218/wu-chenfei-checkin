@@ -4,6 +4,7 @@ import type { MilkteaRecord } from '@/hooks/useMilkteaRecords';
 
 interface Props {
   records: MilkteaRecord[];
+  drinker?: string; // 可选，指定查看某个人的数据
 }
 
 const getHealthLevel = (score: number) => {
@@ -14,10 +15,16 @@ const getHealthLevel = (score: number) => {
   return { label: '危险警告 🚨', color: 'bg-red-500', emoji: '🚨', desc: '奶茶喝太多了！身体会抗议的！' };
 };
 
-export const MilkteaHealthChart = ({ records }: Props) => {
+export const MilkteaHealthChart = ({ records, drinker }: Props) => {
   const analysis = useMemo(() => {
-    const milkteaRecords = records.filter(r => r.type === 'milktea');
-    const noMilkteaRecords = records.filter(r => r.type === 'no_milktea');
+    // 如果指定了drinker，只统计该人的数据
+    let filteredRecords = records;
+    if (drinker) {
+      filteredRecords = records.filter(r => r.drinker === drinker);
+    }
+
+    const milkteaRecords = filteredRecords.filter(r => r.type === 'milktea');
+    const noMilkteaRecords = filteredRecords.filter(r => r.type === 'no_milktea');
     const totalDays = new Set([...milkteaRecords, ...noMilkteaRecords].map(r => r.date)).size;
 
     if (totalDays === 0) return null;
@@ -34,10 +41,10 @@ export const MilkteaHealthChart = ({ records }: Props) => {
     score = Math.max(0, Math.min(100, score));
 
     // Recent 7 days trend
-    const last7 = getLast7DaysData(records);
+    const last7 = getLast7DaysData(filteredRecords);
 
     return { score, totalDays, milkteaDays, totalCups, avgCupsPerDay, noMilkteaDays, last7 };
-  }, [records]);
+  }, [records, drinker]);
 
   if (!analysis) {
     return <p className="text-center text-muted-foreground py-4">还没有足够数据~</p>;

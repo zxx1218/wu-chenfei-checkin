@@ -14,6 +14,16 @@ class AutoCheckinService {
     });
   }
 
+  // 获取今天的日期字符串（中文格式）
+  static getTodayDateString() {
+    const today = new Date();
+    return today.toLocaleDateString('zh-CN', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  }
+
   // 自动为昨天添加安全签到记录
   static async autoSafeCheckin() {
     try {
@@ -75,9 +85,74 @@ class AutoCheckinService {
     }
   }
 
+  // 每天0:01自动给未打卡的人打"今日很乖"
+  static async autoNoMilkteaForToday() {
+    try {
+      const todayStr = this.getTodayDateString();
+      console.log(`Auto no-milktea check for today: ${todayStr}`);
+
+      const drinkers = ['小菲', 'zxx'];
+      const results = [];
+
+      for (const drinker of drinkers) {
+        // 检查这个人今天是否已有任何记录
+        const existingRecords = await MilkteaRecord.findByDate(todayStr);
+        const personRecords = existingRecords.filter(r => r.drinker === drinker);
+
+        if (personRecords.length === 0) {
+          console.log(`${drinker} has no records for today, adding auto no_milktea record`);
+          
+          const now = new Date();
+          const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+          
+          await MilkteaRecord.create({
+            date: todayStr,
+            time: time,
+            type: 'no_milktea',
+            brand: null,
+            drink_name: null,
+            drinker: drinker
+          });
+          
+          results.push({
+            drinker,
+            action: 'added_auto_no_milktea',
+            success: true
+          });
+        } else {
+          console.log(`${drinker} already has records for today, skipping`);
+          results.push({
+            drinker,
+            action: 'skipped_has_records',
+            success: true
+          });
+        }
+      }
+
+      return {
+        success: true,
+        message: `Auto no-milktea check completed for ${todayStr}`,
+        date: todayStr,
+        results
+      };
+    } catch (error) {
+      console.error('Error in auto no-milktea for today:', error);
+      return {
+        success: false,
+        message: 'Auto no-milktea check failed',
+        error: error.message
+      };
+    }
+  }
+
   // 手动触发自动签到
   static async triggerAutoCheckin() {
     return await this.autoSafeCheckin();
+  }
+
+  // 手动触发今天的自动"今日很乖"
+  static async triggerAutoNoMilkteaToday() {
+    return await this.autoNoMilkteaForToday();
   }
 }
 

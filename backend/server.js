@@ -2,7 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const cron = require('node-cron');
 const { initializeBucket } = require('./config/minio');
+const AutoCheckinService = require('./services/autoCheckinService');
 
 // 导入路由
 const bumpRecordsRouter = require('./routes/bumpRecords');
@@ -21,6 +23,17 @@ initializeBucket()
   .catch((err) => {
     console.error('MinIO初始化失败:', err);
   });
+
+// 设置定时任务：每天0:01自动给未打卡的人打"今日很乖"
+cron.schedule('1 0 * * *', async () => {
+  console.log('Running scheduled auto no-milktea check-in...');
+  const result = await AutoCheckinService.autoNoMilkteaForToday();
+  console.log('Scheduled task result:', result);
+}, {
+  timezone: 'Asia/Shanghai'
+});
+
+console.log('Scheduled auto no-milktea check-in at 00:01 every day (Asia/Shanghai)');
 
 // CORS配置 - 修复安全问题
 const corsOptions = {
