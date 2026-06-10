@@ -113,7 +113,7 @@ const DoiStats = ({ records }: Props) => {
     { label: '最爱体位', value: stats.favPosition, emoji: '👑', bg: 'from-yellow-100 to-amber-100 dark:from-yellow-950/40 dark:to-amber-950/40' },
     { label: '多记录天数', value: `${stats.multiRecordDays} 天`, emoji: '📅', bg: 'from-emerald-100 to-teal-100 dark:from-emerald-950/40 dark:to-teal-950/40' },
     { label: '单日最多', value: `${stats.maxRecordsInADay} 次`, emoji: '🎯', bg: 'from-cyan-100 to-sky-100 dark:from-cyan-950/40 dark:to-sky-950/40' },
-    { label: '女性高潮', value: `${stats.femaleOrgasmCount} 次`, emoji: '♀️', bg: 'from-green-100 to-emerald-100 dark:from-green-950/40 dark:to-emerald-950/40' },
+    { label: '小菲高潮', value: `${stats.femaleOrgasmCount} 次`, emoji: '♀️', bg: 'from-green-100 to-emerald-100 dark:from-green-950/40 dark:to-emerald-950/40' },
     { label: '口交次数', value: `${stats.oralSexCount} 次`, emoji: '👄', bg: 'from-blue-100 to-indigo-100 dark:from-blue-950/40 dark:to-indigo-950/40' },
     { label: '最爱场景', value: stats.favScene, emoji: '🏠', bg: 'from-purple-100 to-fuchsia-100 dark:from-purple-950/40 dark:to-fuchsia-950/40' },
   ];
