@@ -18,6 +18,7 @@ const MilkteaTracker = () => {
   const { toast } = useToast();
   const [brand, setBrand] = useState('');
   const [drinkName, setDrinkName] = useState('');
+  const [drinker, setDrinker] = useState<'小菲' | 'zxx' | ''>('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -36,11 +37,12 @@ const MilkteaTracker = () => {
       toast({ title: '今天已经打卡"今日很乖"啦！', description: '不能再记录喝奶茶了哦~', variant: 'destructive' });
       return;
     }
-    const success = await addMilkteaRecord(brand, drinkName, selectedImage || undefined);
+    const success = await addMilkteaRecord(brand, drinkName, selectedImage || undefined, drinker || undefined);
     if (success) {
-      toast({ title: '🧋 奶茶记录成功！', description: `${brand ? brand + ' - ' : ''}${drinkName || '一杯奶茶'}${selectedImage ? ' 📷' : ''}` });
+      toast({ title: '🧋 奶茶记录成功！', description: `${drinker ? drinker + ' - ' : ''}${brand ? brand + ' - ' : ''}${drinkName || '一杯奶茶'}${selectedImage ? ' 📷' : ''}` });
       setBrand('');
       setDrinkName('');
+      setDrinker('');
       setSelectedImage(null);
       setPreviewImage(null);
     }
@@ -128,7 +130,7 @@ const MilkteaTracker = () => {
             返回首页
           </Link>
           <h1 className="text-3xl font-bold gradient-text mb-4">
-            🧋 小梨的奶茶记录
+            🧋 小梨和zxx的奶茶记录
           </h1>
           <div className="inline-flex items-center gap-2 bg-card px-4 py-2 rounded-full shadow-sm border border-border/50">
             <CalendarDays className="w-5 h-5 text-primary" />
@@ -161,6 +163,27 @@ const MilkteaTracker = () => {
                   value={drinkName}
                   onChange={(e) => setDrinkName(e.target.value)}
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">谁喝的</label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={drinker === '小菲' ? 'default' : 'outline'}
+                    onClick={() => setDrinker('小菲')}
+                    className="flex-1 rounded-xl"
+                  >
+                    小菲
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={drinker === 'zxx' ? 'default' : 'outline'}
+                    onClick={() => setDrinker('zxx')}
+                    className="flex-1 rounded-xl"
+                  >
+                    zxx
+                  </Button>
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-1.5 block">奶茶照片（可选）</label>
@@ -287,7 +310,7 @@ const MilkteaTracker = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
                         {record.type === 'milktea'
-                          ? `${record.brand ? record.brand + ' - ' : ''}${record.drinkName || '奶茶'}`
+                          ? `${record.drinker ? record.drinker + ' - ' : ''}${record.brand ? record.brand + ' - ' : ''}${record.drinkName || '奶茶'}`
                           : '今日很乖'}
                       </p>
                       <p className="text-xs text-muted-foreground">{record.date} {record.time}</p>

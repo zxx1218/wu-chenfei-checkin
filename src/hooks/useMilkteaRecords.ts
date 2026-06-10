@@ -9,6 +9,7 @@ export interface MilkteaRecord {
   brand?: string;
   drinkName?: string;
   image?: string;
+  drinker?: '小菲' | 'zxx';
   createdAt?: string;
 }
 
@@ -45,6 +46,7 @@ export function useMilkteaRecords() {
           brand: record.brand || undefined,
           drinkName: record.drink_name || undefined,
           image: record.image || undefined,
+          drinker: record.drinker || undefined,
           createdAt: record.created_at,
         })));
       } else {
@@ -69,7 +71,7 @@ export function useMilkteaRecords() {
     };
   }, []);
 
-  const addMilkteaRecord = async (brand?: string, drinkName?: string, image?: string) => {
+  const addMilkteaRecord = async (brand?: string, drinkName?: string, image?: string, drinker?: '小菲' | 'zxx') => {
     if (hasNoMilkteaToday) return false;
 
     const now = new Date();
@@ -80,6 +82,7 @@ export function useMilkteaRecords() {
       brand: brand || null,
       drink_name: drinkName || null,
       image: image || null,
+      drinker: drinker || null,
     };
 
     try {
