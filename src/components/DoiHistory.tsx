@@ -90,8 +90,8 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
 
   const renderItem = (r: DoiRecord, key: string) => (
     <li key={key} className="bg-muted/30 rounded-xl px-3 py-2">
-      <div className="flex items-start justify-between gap-2">
-        <div className="text-sm flex-1 min-w-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-2">
+        <div className="text-sm flex-1 min-w-0 w-full">
           <div className="font-medium">{r.date} · {r.time}</div>
           <div className="text-xs text-muted-foreground">
             {r.position || '—'} · {r.durationMinutes}分钟 · {'❤️'.repeat(Math.min(r.passionScore || 0, 10))}
@@ -105,7 +105,7 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
           </div>
           {r.notes && <div className="text-xs text-muted-foreground mt-1 italic">"{r.notes}"</div>}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 self-start sm:self-auto pt-1 sm:pt-0">
           {/* 如果记录有视频，则显示播放视频按钮 */}
           {r.videoUrl && (
             <Button 
@@ -114,7 +114,7 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
               className="h-8 px-2 text-xs"
               onClick={() => handlePlayVideo(r)}
             >
-              <Play className="w-3 h-3 mr-1" /> 播放视频
+              <Play className="w-3 h-3 mr-1" /> 播放回忆视频
             </Button>
           )}
           <Button 
