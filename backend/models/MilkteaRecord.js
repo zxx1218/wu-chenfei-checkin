@@ -21,6 +21,11 @@ class MilkteaRecord {
     const id = uuidv4();
     const { date, time, type, brand, drink_name, image, drinker } = data;
     
+    // 如果是补卡奶茶（type === 'milktea'），且指定了drinker，则删除该人当天的"今日很乖"记录
+    if (type === 'milktea' && drinker && date) {
+      await this.deleteNoMilkteaRecordForPerson(date, drinker);
+    }
+    
     const [result] = await promisePool.query(
       `INSERT INTO milktea_records (id, date, time, type, brand, drink_name, image, drinker) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -32,6 +37,11 @@ class MilkteaRecord {
 
   static async update(id, data) {
     const { date, time, type, brand, drink_name, image, drinker } = data;
+    
+    // 如果更新为奶茶类型且指定了drinker，则删除该人当天的"今日很乖"记录
+    if (type === 'milktea' && drinker && date) {
+      await this.deleteNoMilkteaRecordForPerson(date, drinker);
+    }
     
     const [result] = await promisePool.query(
       `UPDATE milktea_records 
@@ -58,6 +68,30 @@ class MilkteaRecord {
       [date]
     );
     return rows;
+  }
+
+  // 删除指定日期和饮用者的"今日很乖"记录
+  static async deleteNoMilkteaRecordForPerson(date, drinker) {
+    try {
+      console.log(`Deleting no_milktea record for ${drinker} on ${date}`);
+      
+      const [result] = await promisePool.query(
+        `DELETE FROM milktea_records 
+         WHERE date = ? AND type = 'no_milktea' AND drinker = ?`,
+        [date, drinker]
+      );
+      
+      if (result.affectedRows > 0) {
+        console.log(`Deleted ${result.affectedRows} no_milktea record(s) for ${drinker} on ${date}`);
+      } else {
+        console.log(`No no_milktea record found for ${drinker} on ${date}`);
+      }
+      
+      return result.affectedRows;
+    } catch (error) {
+      console.error('Error deleting no_milktea record:', error);
+      throw error;
+    }
   }
 }
 

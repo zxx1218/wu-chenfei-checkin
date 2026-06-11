@@ -6,7 +6,6 @@ import DoiStats from '@/components/DoiStats';
 import DoiCharts from '@/components/DoiCharts';
 import DoiSummaryTable from '@/components/DoiSummaryTable';
 import DoiHistory from '@/components/DoiHistory';
-
 const DoiTracker = () => {
   const { records, loading, addRecord, deleteRecord, saveReview, updateRecord } = useDoiRecords();
 

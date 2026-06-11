@@ -21,12 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MilkteaBrandSelect } from '@/components/MilkteaBrandSelect';
-import PositionMultiSelect from '@/components/PositionMultiSelect';
 import { Slider } from '@/components/ui/slider';
-import { bumpApi, milkteaApi, doiApi } from '@/lib/api';
+import { bumpApi, milkteaApi } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { SeverityLevel } from '@/types/record';
-import { Wrench } from 'lucide-react';
+import { Wrench, User } from 'lucide-react';
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const nowTimeHM = () => new Date().toTimeString().slice(0, 5);
@@ -67,12 +66,7 @@ const BackfillDialog = () => {
   const [mtType, setMtType] = useState<'milktea' | 'no_milktea'>('milktea');
   const [brand, setBrand] = useState('');
   const [drinkName, setDrinkName] = useState('');
-
-  // doi
-  const [duration, setDuration] = useState(30);
-  const [positions, setPositions] = useState<string[]>(['传教士']);
-  const [passion, setPassion] = useState(8);
-  const [notes, setNotes] = useState('');
+  const [drinker, setDrinker] = useState<'小菲' | 'zxx' | ''>(''); // 添加饮用者选择
 
   const reset = () => {
     setDate(todayISO());
@@ -83,10 +77,7 @@ const BackfillDialog = () => {
     setMtType('milktea');
     setBrand('');
     setDrinkName('');
-    setDuration(30);
-    setPositions(['传教士']);
-    setPassion(8);
-    setNotes('');
+    setDrinker('');
   };
 
   const submitBump = async () => {
@@ -118,26 +109,9 @@ const BackfillDialog = () => {
         type: mtType,
         brand: mtType === 'milktea' ? brand.trim() || null : null,
         drink_name: mtType === 'milktea' ? drinkName.trim() || null : null,
+        drinker: drinker || null, // 添加饮用者字段
       });
       toast({ title: '补录成功 🧋', description: '已添加到奶茶记录' });
-      reset();
-      setOpen(false);
-    } catch (error: any) {
-      toast({ title: '补录失败', description: error.message, variant: 'destructive' });
-    }
-  };
-
-  const submitDoi = async () => {
-    try {
-      await doiApi.create({
-        date,
-        time,
-        duration_minutes: duration,
-        position: positions.length ? positions.join('、') : null,
-        passion_score: passion,
-        notes: notes.trim() || null,
-      });
-      toast({ title: '补录成功 💖', description: '已添加到 doi 记录' });
       reset();
       setOpen(false);
     } catch (error: any) {
@@ -175,10 +149,9 @@ const BackfillDialog = () => {
         </DialogHeader>
 
         <Tabs defaultValue="bump" className="w-full">
-          <TabsList className="grid grid-cols-3 w-full">
+          <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="bump">🩹 磕碰</TabsTrigger>
             <TabsTrigger value="milktea">🧋 奶茶</TabsTrigger>
-            <TabsTrigger value="doi">💖 doi</TabsTrigger>
           </TabsList>
 
           {/* 共用日期 / 时间 */}
@@ -247,6 +220,40 @@ const BackfillDialog = () => {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* 添加饮用者选择 */}
+            <div>
+              <Label>饮用者</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={drinker === '小菲' ? 'default' : 'outline'}
+                  onClick={() => setDrinker('小菲')}
+                  className="flex-1 rounded-xl flex items-center justify-center gap-1"
+                >
+                  <User className="w-3 h-3" />
+                  小菲
+                </Button>
+                <Button
+                  type="button"
+                  variant={drinker === 'zxx' ? 'default' : 'outline'}
+                  onClick={() => setDrinker('zxx')}
+                  className="flex-1 rounded-xl flex items-center justify-center gap-1"
+                >
+                  <User className="w-3 h-3" />
+                  zxx
+                </Button>
+                <Button
+                  type="button"
+                  variant={!drinker ? 'default' : 'outline'}
+                  onClick={() => setDrinker('')}
+                  className="flex-1 rounded-xl"
+                >
+                  不指定
+                </Button>
+              </div>
+            </div>
+            
             {mtType === 'milktea' && (
               <>
                 <div>
@@ -267,49 +274,6 @@ const BackfillDialog = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
               <Button onClick={submitMilktea}>补录</Button>
-            </DialogFooter>
-          </TabsContent>
-
-          {/* doi */}
-          <TabsContent value="doi" className="space-y-4 mt-4">
-            <div>
-              <Label>时长：{duration} 分钟</Label>
-              <Slider
-                value={[duration]}
-                min={1}
-                max={180}
-                step={1}
-                onValueChange={(v) => setDuration(v[0])}
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label>体位（可多选组合）</Label>
-              <PositionMultiSelect values={positions} onChange={setPositions} />
-            </div>
-            <div>
-              <Label>激情评分：{passion} / 10 {'❤️'.repeat(Math.min(passion, 10))}</Label>
-              <Slider
-                value={[passion]}
-                min={1}
-                max={10}
-                step={1}
-                onValueChange={(v) => setPassion(v[0])}
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label>备注</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="补一笔小记~"
-                maxLength={500}
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
-              <Button onClick={submitDoi}>补录</Button>
             </DialogFooter>
           </TabsContent>
         </Tabs>
