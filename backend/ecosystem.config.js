@@ -3,8 +3,8 @@ module.exports = {
     {
       name: 'wu-chenfei-checkin-backend',
       script: './server.js',
-      instances: 'max', // 使用所有CPU核心
-      exec_mode: 'cluster', // 集群模式
+      instances: 1, // 单例模式
+      exec_mode: 'fork', // fork 模式（单例）
       autorestart: true, // 自动重启
       watch: false, // 不监听文件变化（生产环境）
       max_memory_restart: '500M', // 内存超过500M时自动重启
