@@ -438,19 +438,17 @@ const MilkteaTracker = () => {
           </h2>
           {loading ? (
             <p className="text-center text-muted-foreground py-4">加载中...</p>
-          ) : records.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4">还没有记录哦~</p>
+          ) : records.filter(r => r.type === 'milktea').length === 0 ? (
+            <p className="text-center text-muted-foreground py-4">还没有奶茶记录哦~</p>
           ) : (
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {records.map(record => (
+              {records.filter(r => r.type === 'milktea').map(record => (
                 <div key={record.id} className="flex items-center justify-between bg-accent/30 rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-3 flex-1">
-                    <span className="text-xl">{record.type === 'milktea' ? '🧋' : '🌟'}</span>
+                    <span className="text-xl">🧋</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {record.type === 'milktea'
-                          ? `${record.drinker ? record.drinker + ' - ' : ''}${record.brand ? record.brand + ' - ' : ''}${record.drinkName || '奶茶'}`
-                          : '今日很乖'}
+                        {`${record.drinker ? record.drinker + ' - ' : ''}${record.brand ? record.brand + ' - ' : ''}${record.drinkName || '奶茶'}`}
                       </p>
                       <p className="text-xs text-muted-foreground">{record.date} {record.time}</p>
                       {record.image && (

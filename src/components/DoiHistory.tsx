@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Trash2, Edit3, Play } from 'lucide-react';
+import { Trash2, Edit3, Play, CalendarIcon } from 'lucide-react';
 import { DoiRecord, PartnerReview } from '@/hooks/useDoiRecords';
 import DoiReviewDialog from './DoiReviewDialog';
 import EditDoiDialog from './EditDoiDialog'; // 默认导入
@@ -15,6 +15,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Calendar } from '@/components/ui/calendar'; // 导入日历组件
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'; // 导入Popover组件
+import { format, subDays } from 'date-fns'; // 导入日期格式化函数
+import { zhCN } from 'date-fns/locale'; // 导入中文locale
+import { DateRange } from 'react-day-picker'; // 导入DateRange类型
 
 interface Props {
   records: DoiRecord[];
@@ -31,10 +40,7 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
   const [currentVideoTitle, setCurrentVideoTitle] = useState<string>('');
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [paused, setPaused] = useState(false);
-  const wheelPauseRef = useRef<number>(0);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined); // 修改默认值为undefined，表示不过滤
 
   // 处理视频播放
   const handlePlayVideo = (r: DoiRecord) => {
@@ -44,32 +50,6 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
       setVideoDialogOpen(true);
     }
   };
-
-  // 修复自动滚动功能
-  useEffect(() => {
-    const el = scrollRef.current;
-    const inner = innerRef.current;
-    if (!el || !inner) return;
-    
-    let raf = 0;
-    const step = () => {
-      const now = performance.now();
-      const wheelActive = now < wheelPauseRef.current;
-      if (!paused && !wheelActive && inner.scrollHeight > el.clientHeight) {
-        const half = inner.scrollHeight / 2;
-        el.scrollTop += 0.15;
-        if (el.scrollTop >= half) el.scrollTop -= half;
-      } else if (inner.scrollHeight > el.clientHeight) {
-        // keep loop seamless even during manual scroll
-        const half = inner.scrollHeight / 2;
-        if (el.scrollTop >= half) el.scrollTop -= half;
-        else if (el.scrollTop < 0) el.scrollTop += half;
-      }
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [paused, records.length]);
 
   const handleDeleteClick = (id: string) => {
     setRecordToDelete(id);
@@ -84,9 +64,23 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
     }
   };
 
-  if (!records.length) return null;
-  const recent = records.slice(0, 10);
-  const loop = recent.length > 3 ? [...recent, ...recent] : recent;
+  // 根据日期范围过滤记录
+  const filteredRecords = records.filter(record => {
+    if (!dateRange?.from && !dateRange?.to) {
+      // 如果没有设置日期范围，则显示所有记录
+      return true;
+    }
+    
+    const recordDate = new Date(record.date);
+    if (dateRange?.from && dateRange?.to) {
+      return recordDate >= dateRange.from && recordDate <= dateRange.to;
+    } else if (dateRange?.from) {
+      return recordDate >= dateRange.from;
+    } else if (dateRange?.to) {
+      return recordDate <= dateRange.to;
+    }
+    return true;
+  });
 
   const renderItem = (r: DoiRecord, key: string) => (
     <li key={key} className="bg-muted/30 rounded-xl px-3 py-2">
@@ -152,25 +146,61 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
 
   return (
     <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/50">
-      <h3 className="font-semibold mb-3 flex items-center gap-2">
-        📖 最近记录 <span className="text-xs text-muted-foreground font-normal">（自动滚动，悬停暂停）</span>
-      </h3>
-      <div
-        ref={scrollRef}
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onTouchStart={() => setPaused(true)}
-        onTouchEnd={() => setPaused(false)}
-        onWheel={() => { wheelPauseRef.current = performance.now() + 1500; }}
-        className="max-h-80 overflow-y-auto relative [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        style={{ maskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)' }}
-      >
-        <div ref={innerRef}>
-          <ul className="space-y-2">
-            {loop.map((r, i) => renderItem(r, `${r.id}-${i}`))}
-          </ul>
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-3">
+        <h3 className="font-semibold flex items-center gap-2">
+          📖 历史记录
+        </h3>
+        <div className="w-full sm:w-64 mt-2 sm:mt-0">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, 'yyyy/MM/dd', { locale: zhCN })} - {format(dateRange.to, 'yyyy/MM/dd', { locale: zhCN })}
+                    </>
+                  ) : (
+                    format(dateRange.from, 'yyyy/MM/dd', { locale: zhCN })
+                  )
+                ) : (
+                  <span>选择日期范围</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-popover" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={1} // 只显示一个月份
+                locale={zhCN}
+                captionLayout="dropdown" // 使用下拉框显示年份和月份
+                fromYear={2020} // 设置年份选择的起始年
+                toYear={new Date().getFullYear() + 10} // 设置年份选择的结束年
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
+      
+      <div className="max-h-96 overflow-y-auto">
+        {filteredRecords.length > 0 ? (
+          <ul className="space-y-2">
+            {filteredRecords.map((r) => renderItem(r, r.id))}
+          </ul>
+        ) : (
+          <div className="text-center text-muted-foreground py-8">
+            没有找到匹配的记录
+          </div>
+        )}
+      </div>
+      
       <DoiReviewDialog
         record={reviewing}
         open={!!reviewing}

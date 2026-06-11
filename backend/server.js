@@ -24,16 +24,27 @@ initializeBucket()
     console.error('MinIO初始化失败:', err);
   });
 
-// 设置定时任务：每天0:01自动给未打卡的人打"今日很乖"
+// 设置定时任务：每天0:01自动检查前一天是否有奶茶记录，如果没有则自动打"今日很乖"
 cron.schedule('1 0 * * *', async () => {
-  console.log('Running scheduled auto no-milktea check-in...');
+  console.log('Running scheduled auto no-milktea check-in for yesterday...');
   const result = await AutoCheckinService.autoNoMilkteaForToday();
   console.log('Scheduled task result:', result);
 }, {
   timezone: 'Asia/Shanghai'
 });
 
-console.log('Scheduled auto no-milktea check-in at 00:01 every day (Asia/Shanghai)');
+console.log('Scheduled auto no-milktea check-in at 00:01 every day for yesterday (Asia/Shanghai)');
+
+// 设置定时任务：每天0:01自动检查前一天是否有每日一碰记录，如果没有则自动打平安卡
+cron.schedule('1 0 * * *', async () => {
+  console.log('Running scheduled auto safe bump check-in for yesterday...');
+  const result = await AutoCheckinService.autoSafeBumpForToday();
+  console.log('Scheduled task result:', result);
+}, {
+  timezone: 'Asia/Shanghai'
+});
+
+console.log('Scheduled auto safe bump check-in at 00:01 every day for yesterday (Asia/Shanghai)');
 
 // CORS配置 - 修复安全问题
 const corsOptions = {
