@@ -43,8 +43,8 @@ const DoiStats = ({ records }: Props) => {
       dateCount[r.date] = (dateCount[r.date] || 0) + 1;
     });
     
-    // 找出有多次记录的天数
-    const multiRecordDays = Object.values(dateCount).filter(count => count > 1).length;
+    // DOI天数：所有有DOI记录的不同日期数量
+    const doiDays = Object.keys(dateCount).length;
     const maxRecordsInADay = Math.max(...Object.values(dateCount), 0);
     
     const posCount: Record<string, number> = {};
@@ -95,7 +95,7 @@ const DoiStats = ({ records }: Props) => {
       avgPassion, 
       favPosition, 
       streak,
-      multiRecordDays,
+      doiDays,
       maxRecordsInADay,
       femaleOrgasmCount,
       oralSexCount,
@@ -111,7 +111,7 @@ const DoiStats = ({ records }: Props) => {
     { label: '连续天数', value: `${stats.streak} 天`, emoji: '🔥', bg: 'from-orange-100 to-amber-100 dark:from-orange-950/40 dark:to-amber-950/40' },
     { label: '平均激情', value: stats.avgPassion, emoji: '❤️‍🔥', bg: 'from-red-100 to-pink-100 dark:from-red-950/40 dark:to-pink-950/40' },
     { label: '最爱体位', value: stats.favPosition, emoji: '👑', bg: 'from-yellow-100 to-amber-100 dark:from-yellow-950/40 dark:to-amber-950/40' },
-    { label: '多记录天数', value: `${stats.multiRecordDays} 天`, emoji: '📅', bg: 'from-emerald-100 to-teal-100 dark:from-emerald-950/40 dark:to-teal-950/40' },
+    { label: 'DOI天数', value: `${stats.doiDays} 天`, emoji: '📅', bg: 'from-emerald-100 to-teal-100 dark:from-emerald-950/40 dark:to-teal-950/40' },
     { label: '单日最多', value: `${stats.maxRecordsInADay} 次`, emoji: '🎯', bg: 'from-cyan-100 to-sky-100 dark:from-cyan-950/40 dark:to-sky-950/40' },
     { label: '小菲高潮', value: `${stats.femaleOrgasmCount} 次`, emoji: '♀️', bg: 'from-green-100 to-emerald-100 dark:from-green-950/40 dark:to-emerald-950/40' },
     { label: '口交次数', value: `${stats.oralSexCount} 次`, emoji: '👄', bg: 'from-blue-100 to-indigo-100 dark:from-blue-950/40 dark:to-indigo-950/40' },
