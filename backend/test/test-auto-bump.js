@@ -1,4 +1,4 @@
-const AutoCheckinService = require('./services/autoCheckinService');
+const AutoCheckinService = require('../services/autoCheckinService');
 
 async function testAutoSafeBump() {
   console.log('Testing auto safe bump check-in for yesterday...\n');

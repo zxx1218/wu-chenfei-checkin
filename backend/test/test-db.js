@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { promisePool } = require('./config/db');
+const { promisePool } = require('../config/db');
 
 async function testConnection() {
   try {
