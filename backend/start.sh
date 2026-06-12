@@ -76,7 +76,7 @@ if [ $? -eq 0 ]; then
 fi
 
 # 启动服务
-echo -e "${GREEN}正在启动服务（集群模式）...${NC}"
+echo -e "${GREEN}正在启动服务（单例模式）...${NC}"
 cd "$PROJECT_DIR"
 pm2 start ecosystem.config.js
 
