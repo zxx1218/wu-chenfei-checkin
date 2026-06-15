@@ -92,9 +92,9 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
           </div>
           {r.scene && <div className="text-xs text-muted-foreground">场景: {r.scene}</div>}
           <div className="text-xs text-muted-foreground flex flex-wrap gap-2 mt-1">
-            {r.femaleOrgasm && <span className="text-green-600">♀️高潮</span>}
-            {r.oralSex && <span className="text-blue-600">👄口交</span>}
-            {r.oralExplosion && <span className="text-purple-600">💥口爆</span>}
+            {(r.femaleOrgasm === true || r.femaleOrgasm === 1 || r.femaleOrgasm === '1') && <span className="text-green-600">♀️高潮</span>}
+            {(r.oralSex === true || r.oralSex === 1 || r.oralSex === '1') && <span className="text-blue-600">👄口交</span>}
+            {(r.oralExplosion === true || r.oralExplosion === 1 || r.oralExplosion === '1') && <span className="text-purple-600">💥口爆</span>}
             {r.ejaculationMethod && <span className="text-orange-600">{r.ejaculationMethod}</span>}
           </div>
           {r.notes && <div className="text-xs text-muted-foreground mt-1 italic">"{r.notes}"</div>}
