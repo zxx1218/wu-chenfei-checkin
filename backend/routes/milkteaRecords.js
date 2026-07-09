@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const MilkteaRecord = require('../models/MilkteaRecord');
 
-// 获取所有记录
+// 获取所有记录（不包含图片）
 router.get('/', async (req, res) => {
   try {
     const records = await MilkteaRecord.findAll();
@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 根据ID获取单个记录
+// 根据ID获取单个记录（包含图片）
 router.get('/:id', async (req, res) => {
   try {
     const record = await MilkteaRecord.findById(req.params.id);
@@ -20,6 +20,22 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Record not found' });
     }
     res.json({ data: record });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 获取单条记录的图片
+router.get('/:id/image', async (req, res) => {
+  try {
+    const record = await MilkteaRecord.findById(req.params.id);
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+    if (!record.image) {
+      return res.status(404).json({ error: 'No image found' });
+    }
+    res.json({ data: { image: record.image } });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

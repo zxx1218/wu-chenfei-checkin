@@ -149,28 +149,18 @@ export const MilkteaBudget = ({ records }: Props) => {
     'zxx': true
   });
 
-  console.log('MilkteaBudget组件渲染，当前budgets:', budgets);
-
   // 从后端加载每个人的预算设置
   useEffect(() => {
     let mounted = true;
 
     const loadBudgets = async () => {
-      console.log('[MilkteaBudget] 开始加载预算设置...');
-
       // 并行加载两个人的预算
       const promises = DRINKERS.map(async (drinker) => {
         try {
           const response = await userSettingsApi.getByKey(getBudgetKey(drinker));
-          console.log(`[MilkteaBudget] ${drinker}的完整响应:`, JSON.stringify(response));
-
-          // userSettingsApi.getByKey 已经返回 res.data
-          // 后端返回：{ data: { key: ..., value: ... } }
-          // 所以 response 就是 { data: { key: ..., value: ... } }
-          // 应该访问 response.data.value
+          
           if (response?.data?.value) {
             const savedBudget = parseInt(response.data.value, 10);
-            console.log(`[MilkteaBudget] ${drinker}解析后的预算值:`, savedBudget);
             return { drinker, budget: isNaN(savedBudget) ? 5 : savedBudget };
           }
           return { drinker, budget: 5 };
@@ -190,7 +180,6 @@ export const MilkteaBudget = ({ records }: Props) => {
           newBudgets[drinker] = budget;
         });
 
-        console.log('[MilkteaBudget] 最终设置的budgets:', newBudgets);
         setBudgets(newBudgets);
 
         // 更新加载状态

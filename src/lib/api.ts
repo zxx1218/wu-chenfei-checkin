@@ -80,6 +80,7 @@ export const doiApi = {
 export const milkteaApi = {
   getAll: () => axios.get(`${API_BASE_URL}/milktea-records`).then(res => res.data),
   getById: (id: string) => axios.get(`${API_BASE_URL}/milktea-records/${id}`).then(res => res.data),
+  getImage: (id: string) => axios.get(`${API_BASE_URL}/milktea-records/${id}/image`).then(res => res.data),
   create: (data: any) => axios.post(`${API_BASE_URL}/milktea-records`, data).then(res => res.data),
   update: (id: string, data: any) => axios.put(`${API_BASE_URL}/milktea-records/${id}`, data).then(res => res.data),
   delete: (id: string) => axios.delete(`${API_BASE_URL}/milktea-records/${id}`).then(res => res.data),

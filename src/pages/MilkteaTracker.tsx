@@ -14,6 +14,7 @@ import { MilkteaBudget } from '@/components/MilkteaBudget';
 import { MilkteaComparison } from '@/components/MilkteaComparison';
 import { ImageDialog } from '@/components/ImageDialog';
 import { Link } from 'react-router-dom';
+import { milkteaApi } from '@/lib/api';
 
 const MilkteaTracker = () => {
   const { records, loading, addMilkteaRecord, addNoMilkteaRecord, deleteRecord, hasNoMilkteaToday, todayMilkteaCount, hasPersonNoMilkteaToday, getPersonMilkteaCountToday } = useMilkteaRecords();
@@ -26,6 +27,7 @@ const MilkteaTracker = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [viewingImage, setViewingImage] = useState<string>('');
+  const [loadingImage, setLoadingImage] = useState<string | null>(null); // 正在加载的图片ID
   const [activeTab, setActiveTab] = useState('overall');
 
   const today = new Date().toLocaleDateString('zh-CN', {
@@ -152,9 +154,31 @@ const MilkteaTracker = () => {
     setPreviewImage(null);
   };
 
-  const handleViewImage = (imageUrl: string) => {
-    setViewingImage(imageUrl);
-    setImageDialogOpen(true);
+  // 优化：按需加载图片，点击查看时才从服务器获取
+  const handleViewImage = async (recordId: string) => {
+    setLoadingImage(recordId);
+    try {
+      const response = await milkteaApi.getImage(recordId);
+      if (response?.data?.image) {
+        setViewingImage(response.data.image);
+        setImageDialogOpen(true);
+      } else {
+        toast({
+          title: '图片不存在',
+          description: '该记录没有图片',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load image:', error);
+      toast({
+        title: '加载失败',
+        description: '无法加载图片，请稍后重试',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingImage(null);
+    }
   };
 
   // Stats
@@ -451,17 +475,26 @@ const MilkteaTracker = () => {
                         {`${record.drinker ? record.drinker + ' - ' : ''}${record.brand ? record.brand + ' - ' : ''}${record.drinkName || '奶茶'}`}
                       </p>
                       <p className="text-xs text-muted-foreground">{record.date} {record.time}</p>
-                      {record.image && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 mt-1 text-xs"
-                          onClick={() => handleViewImage(record.image!)}
-                        >
-                          <ImageIcon className="w-3.5 h-3.5 mr-1" />
-                          查看奶茶照片
-                        </Button>
-                      )}
+                      {/* 优化：只显示"查看照片"按钮，不预先加载图片数据 */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 mt-1 text-xs"
+                        onClick={() => handleViewImage(record.id)}
+                        disabled={loadingImage === record.id}
+                      >
+                        {loadingImage === record.id ? (
+                          <>
+                            <span className="animate-spin mr-1">⏳</span>
+                            加载中...
+                          </>
+                        ) : (
+                          <>
+                            <ImageIcon className="w-3.5 h-3.5 mr-1" />
+                            查看奶茶照片
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                   <Button

@@ -3,8 +3,9 @@ const { v4: uuidv4 } = require('uuid');
 
 class MilkteaRecord {
   static async findAll() {
+    // 优化：列表查询时不返回image字段，减少数据传输量
     const [rows] = await promisePool.query(
-      'SELECT * FROM milktea_records ORDER BY created_at DESC'
+      'SELECT id, date, time, type, brand, drink_name, drinker, created_at FROM milktea_records ORDER BY created_at DESC'
     );
     return rows;
   }
