@@ -42,6 +42,42 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
   const [currentVideoTitle, setCurrentVideoTitle] = useState<string>('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined); // 修改默认值为undefined，表示不过滤
 
+  // 对记录进行排序：先按日期降序，再按时间降序
+  const sortedRecords = [...records].sort((a, b) => {
+    // 首先比较日期
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    
+    if (dateA.getTime() !== dateB.getTime()) {
+      return dateB.getTime() - dateA.getTime(); // 日期降序
+    }
+    
+    // 如果日期相同，再按时间降序排序
+    if (a.time && b.time) {
+      return b.time.localeCompare(a.time); // 时间降序
+    }
+    
+    return 0;
+  });
+
+  // 根据日期范围过滤记录
+  const filteredRecords = sortedRecords.filter(record => {
+    if (!dateRange?.from && !dateRange?.to) {
+      // 如果没有设置日期范围，则显示所有记录
+      return true;
+    }
+    
+    const recordDate = new Date(record.date);
+    if (dateRange?.from && dateRange?.to) {
+      return recordDate >= dateRange.from && recordDate <= dateRange.to;
+    } else if (dateRange?.from) {
+      return recordDate >= dateRange.from;
+    } else if (dateRange?.to) {
+      return recordDate <= dateRange.to;
+    }
+    return true;
+  });
+
   // 处理视频播放
   const handlePlayVideo = (r: DoiRecord) => {
     if (r.videoUrl) {
@@ -63,24 +99,6 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
       setRecordToDelete(null);
     }
   };
-
-  // 根据日期范围过滤记录
-  const filteredRecords = records.filter(record => {
-    if (!dateRange?.from && !dateRange?.to) {
-      // 如果没有设置日期范围，则显示所有记录
-      return true;
-    }
-    
-    const recordDate = new Date(record.date);
-    if (dateRange?.from && dateRange?.to) {
-      return recordDate >= dateRange.from && recordDate <= dateRange.to;
-    } else if (dateRange?.from) {
-      return recordDate >= dateRange.from;
-    } else if (dateRange?.to) {
-      return recordDate <= dateRange.to;
-    }
-    return true;
-  });
 
   const renderItem = (r: DoiRecord, key: string) => (
     <li key={key} className="bg-muted/30 rounded-xl px-3 py-2">
