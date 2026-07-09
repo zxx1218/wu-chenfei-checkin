@@ -159,6 +159,7 @@ const MilkteaTracker = () => {
     setLoadingImage(recordId);
     try {
       const response = await milkteaApi.getImage(recordId);
+      // API层已通过.then(res => res.data)解包，所以直接访问response.data.image
       if (response?.data?.image) {
         setViewingImage(response.data.image);
         setImageDialogOpen(true);
@@ -475,26 +476,28 @@ const MilkteaTracker = () => {
                         {`${record.drinker ? record.drinker + ' - ' : ''}${record.brand ? record.brand + ' - ' : ''}${record.drinkName || '奶茶'}`}
                       </p>
                       <p className="text-xs text-muted-foreground">{record.date} {record.time}</p>
-                      {/* 优化：只显示"查看照片"按钮，不预先加载图片数据 */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 mt-1 text-xs"
-                        onClick={() => handleViewImage(record.id)}
-                        disabled={loadingImage === record.id}
-                      >
-                        {loadingImage === record.id ? (
-                          <>
-                            <span className="animate-spin mr-1">⏳</span>
-                            加载中...
-                          </>
-                        ) : (
-                          <>
-                            <ImageIcon className="w-3.5 h-3.5 mr-1" />
-                            查看奶茶照片
-                          </>
-                        )}
-                      </Button>
+                      {/* 优化：只有当记录确实有图片时才显示"查看照片"按钮 */}
+                      {record.hasImage && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 mt-1 text-xs"
+                          onClick={() => handleViewImage(record.id)}
+                          disabled={loadingImage === record.id}
+                        >
+                          {loadingImage === record.id ? (
+                            <>
+                              <span className="animate-spin mr-1">⏳</span>
+                              加载中...
+                            </>
+                          ) : (
+                            <>
+                              <ImageIcon className="w-3.5 h-3.5 mr-1" />
+                              查看奶茶照片
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <Button

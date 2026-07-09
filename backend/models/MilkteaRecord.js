@@ -3,9 +3,9 @@ const { v4: uuidv4 } = require('uuid');
 
 class MilkteaRecord {
   static async findAll() {
-    // 优化：列表查询时不返回image字段，减少数据传输量
+    // 优化：列表查询时使用CASE判断是否有图片，避免传输大量base64数据
     const [rows] = await promisePool.query(
-      'SELECT id, date, time, type, brand, drink_name, drinker, created_at FROM milktea_records ORDER BY created_at DESC'
+      'SELECT id, date, time, type, brand, drink_name, drinker, created_at, CASE WHEN image IS NOT NULL AND image != "" THEN 1 ELSE 0 END as has_image FROM milktea_records ORDER BY created_at DESC'
     );
     return rows;
   }

@@ -9,6 +9,7 @@ export interface MilkteaRecord {
   brand?: string;
   drinkName?: string;
   image?: string; // 可选，列表查询时不包含
+  hasImage?: boolean; // 标记是否有图片（轻量级布尔值）
   drinker?: '小菲' | 'zxx';
   createdAt?: string;
 }
@@ -64,6 +65,7 @@ export function useMilkteaRecords() {
           brand: record.brand || undefined,
           drinkName: record.drink_name || undefined,
           image: record.image || undefined,
+          hasImage: record.has_image === 1 || record.has_image === true, // 将数据库的0/1转换为布尔值
           drinker: record.drinker || undefined,
           createdAt: record.created_at,
         })));
@@ -111,10 +113,11 @@ export function useMilkteaRecords() {
     };
 
     try {
-      await milkteaApi.create(record);
-      // 优化：直接更新本地状态而不是重新请求
+      const response = await milkteaApi.create(record);
+      // 修复：使用后端返回的真实ID，而不是临时ID
+      const createdRecord = response.data;
       const newRecord: MilkteaRecord = {
-        id: Date.now().toString(), // 临时ID，实际应该从后端返回
+        id: createdRecord.id, // 使用后端返回的真实UUID
         ...record,
         brand: record.brand || undefined,
         drinkName: record.drink_name || undefined,
@@ -158,10 +161,11 @@ export function useMilkteaRecords() {
     };
 
     try {
-      await milkteaApi.create(record);
-      // 优化：直接更新本地状态
+      const response = await milkteaApi.create(record);
+      // 修复：使用后端返回的真实ID，而不是临时ID
+      const createdRecord = response.data;
       const newRecord: MilkteaRecord = {
-        id: Date.now().toString(),
+        id: createdRecord.id, // 使用后端返回的真实UUID
         ...record,
         drinker: record.drinker || undefined,
         createdAt: now.toISOString(),
