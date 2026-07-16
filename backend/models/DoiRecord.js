@@ -37,7 +37,7 @@ class DoiRecord {
       date, time, duration_minutes, position, passion_score, notes,
       oral_sex, female_orgasm, oral_explosion, ejaculation_method, scene,
       partner_overall_score, partner_passion_score, partner_duration_feedback,
-      partner_position_feedback, partner_comment, partner_reviewer, video_url
+      partner_position_feedback, partner_comment, partner_reviewer, video_url, rating
     } = data;
 
     const [result] = await promisePool.query(
@@ -45,8 +45,8 @@ class DoiRecord {
         id, date, time, duration_minutes, position, passion_score, notes,
         oral_sex, female_orgasm, oral_explosion, ejaculation_method, scene,
         partner_overall_score, partner_passion_score, partner_duration_feedback,
-        partner_position_feedback, partner_comment, partner_reviewer, video_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        partner_position_feedback, partner_comment, partner_reviewer, video_url, rating
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, date, time, duration_minutes, position, passion_score, notes,
         booleanToDatabaseValue(oral_sex), 
@@ -54,7 +54,7 @@ class DoiRecord {
         booleanToDatabaseValue(oral_explosion), 
         ejaculation_method, scene,
         partner_overall_score, partner_passion_score, partner_duration_feedback,
-        partner_position_feedback, partner_comment, partner_reviewer, video_url || null
+        partner_position_feedback, partner_comment, partner_reviewer, video_url || null, rating || null
       ]
     );
 

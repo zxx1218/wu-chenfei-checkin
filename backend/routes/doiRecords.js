@@ -34,7 +34,8 @@ router.post('/', upload.single('video'), extractVideoUrl, async (req, res) => {
     // 将上传的视频URL合并到请求体中
     const recordData = {
       ...req.body,
-      video_url: req.body.video_url || null
+      video_url: req.body.video_url || null,
+      rating: req.body.rating !== undefined ? Number(req.body.rating) : undefined
     };
     
     const record = await DoiRecord.create(recordData);
@@ -51,7 +52,8 @@ router.put('/:id', upload.single('video'), extractVideoUrl, async (req, res) => 
     // 将上传的视频URL合并到请求体中
     const recordData = {
       ...req.body,
-      video_url: req.body.video_url || undefined // 如果没有新上传的视频，则不更新此字段
+      video_url: req.body.video_url || undefined, // 如果没有新上传的视频，则不更新此字段
+      rating: req.body.rating !== undefined ? Number(req.body.rating) : undefined
     };
     
     const record = await DoiRecord.update(req.params.id, recordData);

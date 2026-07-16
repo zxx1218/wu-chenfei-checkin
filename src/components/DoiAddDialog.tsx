@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import type { NewDoiRecord } from '@/hooks/useDoiRecords';
 import PositionMultiSelect, { POSITIONS } from './PositionMultiSelect';
 import VideoUpload from './VideoUpload';
+import DoiRatingSelector from './DoiRatingSelector'; // 导入评价选择器
 export { POSITIONS };
 
 interface Props {
@@ -35,6 +36,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
   const [positions, setPositions] = useState<string[]>(['传教士']);
   const [passion, setPassion] = useState(8);
   const [notes, setNotes] = useState('');
+  const [doiRating, setDoiRating] = useState<'超赞' | '还行' | '一般' | '不太行' | null>(null); // 添加DOI评价状态
   const [scene, setScene] = useState<string>('');
   const [femaleOrgasm, setFemaleOrgasm] = useState(false);
   const [oralSex, setOralSex] = useState(false);
@@ -79,6 +81,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
     setPositions(['传教士']);
     setPassion(8);
     setNotes('');
+    setDoiRating(undefined); // 重置评价
     setScene('');
     setFemaleOrgasm(false);
     setOralSex(false);
@@ -98,6 +101,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
       position: positions.join('、') || undefined,
       passionScore: passion,
       notes: notes.trim() || undefined,
+      doiRating: doiRating || undefined, // 添加评价
       scene: scene || undefined,
       femaleOrgasm,
       oralSex,
@@ -273,6 +277,17 @@ const DoiAddDialog = ({ onAdd }: Props) => {
               </div>
             </div>
             <Slider value={[passion]} min={1} max={10} step={1} onValueChange={(v) => setPassion(v[0])} />
+          </div>
+
+          {/* DOI评价卡片 */}
+          <div className="p-4 rounded-3xl border-2 border-pink-300/40 bg-pink-100/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-pink-600">💖 本次体验</span>
+            </div>
+            <DoiRatingSelector 
+              value={doiRating || undefined} 
+              onChange={(rating) => setDoiRating(rating)}
+            />
           </div>
 
           {/* 贴纸开关：高潮 & 口交 */}

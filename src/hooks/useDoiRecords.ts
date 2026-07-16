@@ -9,6 +9,7 @@ export interface DoiRecord {
   position?: string;
   passionScore?: number;
   notes?: string;
+  doiRating?: '超赞' | '还行' | '一般' | '不太行'; // 这次doi评价
   createdAt?: string;
   partnerOverallScore?: number;
   partnerPassionScore?: number;
@@ -32,6 +33,7 @@ export interface NewDoiRecord {
   position?: string;
   passionScore?: number;
   notes?: string;
+  doiRating?: '超赞' | '还行' | '一般' | '不太行'; // 这次doi评价
   scene?: string;
   femaleOrgasm?: boolean;
   oralSex?: boolean;
@@ -68,6 +70,7 @@ export function useDoiRecords() {
             position: r.position || undefined,
             passionScore: r.passion_score ?? undefined,
             notes: r.notes || undefined,
+            doiRating: r.doi_rating || undefined, // 添加doi评价字段
             createdAt: r.created_at,
             partnerOverallScore: r.partner_overall_score ?? undefined,
             partnerPassionScore: r.partner_passion_score ?? undefined,
@@ -109,6 +112,7 @@ export function useDoiRecords() {
           position: r.position || null,
           passion_score: r.passionScore ?? null,
           notes: r.notes || null,
+          doi_rating: r.doiRating || null, // 添加doi评价字段
           scene: r.scene || null,
           female_orgasm: r.femaleOrgasm ?? null,
           oral_sex: r.oralSex ?? null,
@@ -124,6 +128,7 @@ export function useDoiRecords() {
           position: r.position || null,
           passion_score: r.passionScore ?? null,
           notes: r.notes || null,
+          doi_rating: r.doiRating || null, // 添加doi评价字段
           scene: r.scene || null,
           female_orgasm: r.femaleOrgasm ?? null,
           oral_sex: r.oralSex ?? null,
@@ -161,6 +166,7 @@ export function useDoiRecords() {
         position: updatedData.position || null,
         passion_score: updatedData.passionScore ?? null,
         notes: updatedData.notes || null,
+        doi_rating: updatedData.doiRating || null, // 添加doi评价字段
         scene: updatedData.scene || null,
         female_orgasm: updatedData.femaleOrgasm ?? null,
         oral_sex: updatedData.oralSex ?? null,

@@ -55,6 +55,14 @@ const DoiStats = ({ records }: Props) => {
       });
     });
     
+    // 统计评价分布
+    const ratingCount: Record<string, number> = {
+      '超赞': 0,
+      '还行': 0,
+      '一般': 0,
+      '不太行': 0
+    };
+    
     // 统计新字段
     const sceneCount: Record<string, number> = {};
     let femaleOrgasmCount = 0;
@@ -63,6 +71,11 @@ const DoiStats = ({ records }: Props) => {
     const ejaculationMethodCount: Record<string, number> = {};
     
     records.forEach((r) => {
+      // 统计评价
+      if (r.doiRating) {
+        ratingCount[r.doiRating]++;
+      }
+      
       if (r.scene) {
         sceneCount[r.scene] = (sceneCount[r.scene] || 0) + 1;
       }
@@ -89,6 +102,9 @@ const DoiStats = ({ records }: Props) => {
     const favEjaculationMethod = Object.entries(ejaculationMethodCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
     const streak = calcStreak(records);
     
+    // 找出最受欢迎的评价
+    const topRating = Object.entries(ratingCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+    
     return { 
       total, 
       totalMin, 
@@ -101,7 +117,10 @@ const DoiStats = ({ records }: Props) => {
       oralSexCount,
       oralExplosionCount,
       favScene,
-      favEjaculationMethod
+      favEjaculationMethod,
+      ratingCount, // 评价统计
+      topRating, // 最受欢迎的评价
+      totalRated: Object.values(ratingCount).reduce((sum, count) => sum + count, 0) // 总评价数
     };
   }, [records]);
 
@@ -115,7 +134,7 @@ const DoiStats = ({ records }: Props) => {
     { label: '单日最多', value: `${stats.maxRecordsInADay} 次`, emoji: '🎯', bg: 'from-cyan-100 to-sky-100 dark:from-cyan-950/40 dark:to-sky-950/40' },
     { label: '小菲高潮', value: `${stats.femaleOrgasmCount} 次`, emoji: '♀️', bg: 'from-green-100 to-emerald-100 dark:from-green-950/40 dark:to-emerald-950/40' },
     { label: '口交次数', value: `${stats.oralSexCount} 次`, emoji: '👄', bg: 'from-blue-100 to-indigo-100 dark:from-blue-950/40 dark:to-indigo-950/40' },
-    { label: '最爱场景', value: stats.favScene, emoji: '🏠', bg: 'from-purple-100 to-fuchsia-100 dark:from-purple-950/40 dark:to-fuchsia-950/40' },
+    { label: '最爱评价', value: stats.topRating, emoji: '✨', bg: 'from-purple-100 to-fuchsia-100 dark:from-purple-950/40 dark:to-fuchsia-950/40' },
   ];
 
   return (

@@ -109,6 +109,25 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
             {r.position || '—'} · {r.durationMinutes}分钟 · {'❤️'.repeat(Math.min(r.passionScore || 0, 10))}
           </div>
           {r.scene && <div className="text-xs text-muted-foreground">场景: {r.scene}</div>}
+          
+          {/* 显示DOI评价 */}
+          {r.doiRating && (
+            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <span className="font-medium">体验:</span>
+              <span className={`
+                inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                ${r.doiRating === '超赞' ? 'bg-pink-100 text-pink-800' : 
+                  r.doiRating === '还行' ? 'bg-purple-100 text-purple-800' : 
+                  r.doiRating === '一般' ? 'bg-blue-100 text-blue-800' : 
+                  'bg-yellow-100 text-yellow-800'}
+              `}>
+                {r.doiRating === '超赞' ? '🍑' : 
+                 r.doiRating === '还行' ? '🦋' : 
+                 r.doiRating === '一般' ? '💧' : '🍋'} {r.doiRating}
+              </span>
+            </div>
+          )}
+          
           <div className="text-xs text-muted-foreground flex flex-wrap gap-2 mt-1">
             {(r.femaleOrgasm === true || r.femaleOrgasm === 1 || r.femaleOrgasm === '1') && <span className="text-green-600">♀️高潮</span>}
             {(r.oralSex === true || r.oralSex === 1 || r.oralSex === '1') && <span className="text-blue-600">👄口交</span>}
