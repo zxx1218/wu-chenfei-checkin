@@ -5,7 +5,7 @@ class MilkteaRecord {
   static async findAll() {
     // 优化：列表查询时使用CASE判断是否有图片，避免传输大量base64数据
     const [rows] = await promisePool.query(
-      'SELECT id, date, time, type, brand, drink_name, drinker, created_at, CASE WHEN image IS NOT NULL AND image != "" THEN 1 ELSE 0 END as has_image FROM milktea_records ORDER BY created_at DESC'
+      'SELECT id, date, time, type, brand, drink_name, drinker, zhebei_rating, created_at, CASE WHEN image IS NOT NULL AND image != "" THEN 1 ELSE 0 END as has_image FROM milktea_records ORDER BY created_at DESC'
     );
     return rows;
   }
@@ -20,7 +20,7 @@ class MilkteaRecord {
 
   static async create(data) {
     const id = uuidv4();
-    const { date, time, type, brand, drink_name, image, drinker } = data;
+    const { date, time, type, brand, drink_name, image, drinker, zhebei_rating } = data;
     
     // 如果是补卡奶茶（type === 'milktea'），且指定了drinker，则删除该人当天的"今日很乖"记录
     if (type === 'milktea' && drinker && date) {
@@ -28,16 +28,16 @@ class MilkteaRecord {
     }
     
     const [result] = await promisePool.query(
-      `INSERT INTO milktea_records (id, date, time, type, brand, drink_name, image, drinker) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, date, time, type, brand, drink_name, image || null, drinker || null]
+      `INSERT INTO milktea_records (id, date, time, type, brand, drink_name, image, drinker, zhebei_rating) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, date, time, type, brand, drink_name, image || null, drinker || null, zhebei_rating || null]
     );
     
     return { id, ...data };
   }
 
   static async update(id, data) {
-    const { date, time, type, brand, drink_name, image, drinker } = data;
+    const { date, time, type, brand, drink_name, image, drinker, zhebei_rating } = data;
     
     // 如果更新为奶茶类型且指定了drinker，则删除该人当天的"今日很乖"记录
     if (type === 'milktea' && drinker && date) {
@@ -46,9 +46,9 @@ class MilkteaRecord {
     
     const [result] = await promisePool.query(
       `UPDATE milktea_records 
-       SET date = ?, time = ?, type = ?, brand = ?, drink_name = ?, image = ?, drinker = ?
+       SET date = ?, time = ?, type = ?, brand = ?, drink_name = ?, image = ?, drinker = ?, zhebei_rating = ?
        WHERE id = ?`,
-      [date, time, type, brand, drink_name, image || null, drinker || null, id]
+      [date, time, type, brand, drink_name, image || null, drinker || null, zhebei_rating || null, id]
     );
     
     return result.affectedRows > 0;

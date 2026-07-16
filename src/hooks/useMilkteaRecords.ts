@@ -11,6 +11,7 @@ export interface MilkteaRecord {
   image?: string; // 可选，列表查询时不包含
   hasImage?: boolean; // 标记是否有图片（轻量级布尔值）
   drinker?: '小菲' | 'zxx';
+  zhebeiRating?: '夯爆了' | '中不溜' | '拉完了'; // 这杯奶茶评价
   createdAt?: string;
 }
 
@@ -67,6 +68,7 @@ export function useMilkteaRecords() {
           image: record.image || undefined,
           hasImage: record.has_image === 1 || record.has_image === true, // 将数据库的0/1转换为布尔值
           drinker: record.drinker || undefined,
+          zhebeiRating: record.zhebei_rating || undefined,
           createdAt: record.created_at,
         })));
       } else {
@@ -91,7 +93,7 @@ export function useMilkteaRecords() {
     };
   }, [fetchRecords]);
 
-  const addMilkteaRecord = async (brand?: string, drinkName?: string, image?: string, drinker?: '小菲' | 'zxx') => {
+  const addMilkteaRecord = async (brand?: string, drinkName?: string, image?: string, drinker?: '小菲' | 'zxx', zhebeiRating?: '夯爆了' | '中不溜' | '拉完了') => {
     // 如果指定了drinker，只检查该人是否已打卡"今日很乖"
     if (drinker && hasPersonNoMilkteaToday(drinker)) {
       return false;
@@ -110,6 +112,7 @@ export function useMilkteaRecords() {
       drink_name: drinkName || null,
       image: image || null,
       drinker: drinker || null,
+      zhebei_rating: zhebeiRating || null,
     };
 
     try {
@@ -123,6 +126,7 @@ export function useMilkteaRecords() {
         drinkName: record.drink_name || undefined,
         image: record.image || undefined,
         drinker: record.drinker || undefined,
+        zhebeiRating: record.zhebei_rating || undefined,
         createdAt: now.toISOString(),
       };
       setAllRecords(prev => [newRecord, ...prev]);

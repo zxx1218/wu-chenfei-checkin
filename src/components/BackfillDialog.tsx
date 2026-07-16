@@ -67,6 +67,7 @@ const BackfillDialog = () => {
   const [brand, setBrand] = useState('');
   const [drinkName, setDrinkName] = useState('');
   const [drinker, setDrinker] = useState<'小菲' | 'zxx' | ''>(''); // 添加饮用者选择
+  const [zhebeiRating, setZhebeiRating] = useState<'夯爆了' | '中不溜' | '拉完了' | ''>(''); // 这杯奶茶评价
 
   const reset = () => {
     setDate(todayISO());
@@ -78,6 +79,7 @@ const BackfillDialog = () => {
     setBrand('');
     setDrinkName('');
     setDrinker('');
+    setZhebeiRating('');
   };
 
   const submitBump = async () => {
@@ -110,6 +112,7 @@ const BackfillDialog = () => {
         brand: mtType === 'milktea' ? brand.trim() || null : null,
         drink_name: mtType === 'milktea' ? drinkName.trim() || null : null,
         drinker: drinker || null, // 添加饮用者字段
+        zhebei_rating: zhebeiRating || null, // 添加评价字段
       });
       toast({ title: '补录成功 🧋', description: '已添加到奶茶记录' });
       reset();
@@ -269,8 +272,50 @@ const BackfillDialog = () => {
                     maxLength={50}
                   />
                 </div>
+                <div>
+                  <Label>这杯奶茶评价（可选）</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={zhebeiRating === '夯爆了' ? 'default' : 'outline'}
+                      onClick={() => setZhebeiRating(zhebeiRating === '夯爆了' ? '' : '夯爆了')}
+                      className={`flex-1 rounded-xl transition-all text-sm ${
+                        zhebeiRating === '夯爆了' 
+                          ? 'bg-green-500 hover:bg-green-600 border-green-500' 
+                          : 'border-green-500/30 text-green-600 hover:bg-green-500/10'
+                      }`}
+                    >
+                      🔥 夯爆了
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={zhebeiRating === '中不溜' ? 'default' : 'outline'}
+                      onClick={() => setZhebeiRating(zhebeiRating === '中不溜' ? '' : '中不溜')}
+                      className={`flex-1 rounded-xl transition-all text-sm ${
+                        zhebeiRating === '中不溜' 
+                          ? 'bg-yellow-500 hover:bg-yellow-600 border-yellow-500' 
+                          : 'border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10'
+                      }`}
+                    >
+                      😐 中不溜
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={zhebeiRating === '拉完了' ? 'default' : 'outline'}
+                      onClick={() => setZhebeiRating(zhebeiRating === '拉完了' ? '' : '拉完了')}
+                      className={`flex-1 rounded-xl transition-all text-sm ${
+                        zhebeiRating === '拉完了' 
+                          ? 'bg-red-500 hover:bg-red-600 border-red-500' 
+                          : 'border-red-500/30 text-red-600 hover:bg-red-500/10'
+                      }`}
+                    >
+                      💩 拉完了
+                    </Button>
+                  </div>
+                </div>
               </>
             )}
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
               <Button onClick={submitMilktea}>补录</Button>

@@ -3,13 +3,8 @@ module.exports = {
     {
       name: 'wu-chenfei-checkin-backend',
       script: './server.js',
-<<<<<<< HEAD
-      instances: 1, // 单例模式
-      exec_mode: 'fork', // fork 模式（单例）
-=======
       instances: 1, // 单实例模式（定时任务只需要一个实例）
       exec_mode: 'fork', // fork模式（非集群）
->>>>>>> 8ad0f644805a0a4e8dd1f7bb5068568029ee839c
       autorestart: true, // 自动重启
       watch: false, // 不监听文件变化（生产环境）
       max_memory_restart: '500M', // 内存超过500M时自动重启

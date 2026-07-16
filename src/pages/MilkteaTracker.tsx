@@ -12,6 +12,7 @@ import { MilkteaBrandChart } from '@/components/MilkteaBrandChart';
 import { MilkteaHealthChart } from '@/components/MilkteaHealthChart';
 import { MilkteaBudget } from '@/components/MilkteaBudget';
 import { MilkteaComparison } from '@/components/MilkteaComparison';
+import { ZhebeiRatingStats } from '@/components/ZhebeiRatingStats';
 import { ImageDialog } from '@/components/ImageDialog';
 import { Link } from 'react-router-dom';
 import { milkteaApi } from '@/lib/api';
@@ -22,6 +23,7 @@ const MilkteaTracker = () => {
   const [brand, setBrand] = useState('');
   const [drinkName, setDrinkName] = useState('');
   const [drinker, setDrinker] = useState<'小菲' | 'zxx' | ''>('');
+  const [zhebeiRating, setZhebeiRating] = useState<'夯爆了' | '中不溜' | '拉完了' | ''>('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -56,12 +58,13 @@ const MilkteaTracker = () => {
       });
       return;
     }
-    const success = await addMilkteaRecord(brand, drinkName, selectedImage || undefined, drinker || undefined);
+    const success = await addMilkteaRecord(brand, drinkName, selectedImage || undefined, drinker || undefined, zhebeiRating || undefined);
     if (success) {
-      toast({ title: '🧋 奶茶记录成功！', description: `${drinker ? drinker + ' - ' : ''}${brand ? brand + ' - ' : ''}${drinkName || '一杯奶茶'}${selectedImage ? ' 📷' : ''}` });
+      toast({ title: '🧋 奶茶记录成功！', description: `${drinker ? drinker + ' - ' : ''}${brand ? brand + ' - ' : ''}${drinkName || '一杯奶茶'}${selectedImage ? ' 📷' : ''}${zhebeiRating ? ' ⭐' : ''}` });
       setBrand('');
       setDrinkName('');
       setDrinker('');
+      setZhebeiRating('');
       setSelectedImage(null);
       setPreviewImage(null);
     }
@@ -259,6 +262,47 @@ const MilkteaTracker = () => {
                 />
               </div>
               <div>
+                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">这杯奶茶评价（可选）</label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={zhebeiRating === '夯爆了' ? 'default' : 'outline'}
+                    onClick={() => setZhebeiRating(zhebeiRating === '夯爆了' ? '' : '夯爆了')}
+                    className={`flex-1 rounded-xl transition-all ${
+                      zhebeiRating === '夯爆了' 
+                        ? 'bg-green-500 hover:bg-green-600 border-green-500' 
+                        : 'border-green-500/30 text-green-600 hover:bg-green-500/10'
+                    }`}
+                  >
+                    🔥 夯爆了
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={zhebeiRating === '中不溜' ? 'default' : 'outline'}
+                    onClick={() => setZhebeiRating(zhebeiRating === '中不溜' ? '' : '中不溜')}
+                    className={`flex-1 rounded-xl transition-all ${
+                      zhebeiRating === '中不溜' 
+                        ? 'bg-yellow-500 hover:bg-yellow-600 border-yellow-500' 
+                        : 'border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10'
+                    }`}
+                  >
+                    😐 中不溜
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={zhebeiRating === '拉完了' ? 'default' : 'outline'}
+                    onClick={() => setZhebeiRating(zhebeiRating === '拉完了' ? '' : '拉完了')}
+                    className={`flex-1 rounded-xl transition-all ${
+                      zhebeiRating === '拉完了' 
+                        ? 'bg-red-500 hover:bg-red-600 border-red-500' 
+                        : 'border-red-500/30 text-red-600 hover:bg-red-500/10'
+                    }`}
+                  >
+                    💩 拉完了
+                  </Button>
+                </div>
+              </div>
+              <div>
                 <label className="text-sm font-medium text-muted-foreground mb-1.5 block">奶茶照片（可选）</label>
                 <div className="flex gap-2 items-start">
                   <div className="flex-1">
@@ -389,6 +433,15 @@ const MilkteaTracker = () => {
               <MilkteaBrandChart records={records} />
             </section>
 
+            {/* Zhebei Rating Stats */}
+            <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <span>⭐</span>
+                <span>这杯奶茶评价</span>
+              </h2>
+              <ZhebeiRatingStats records={records} />
+            </section>
+
             {/* Health Analysis */}
             <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -429,6 +482,14 @@ const MilkteaTracker = () => {
               </h2>
               <MilkteaHealthChart records={records} drinker="小菲" />
             </section>
+
+            <section className="bg-card rounded-3xl p-6 shadow-sm border border-pink-500/30">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-pink-600">
+                <span>⭐</span>
+                <span>这杯奶茶评价</span>
+              </h2>
+              <ZhebeiRatingStats records={records} drinker="小菲" />
+            </section>
           </TabsContent>
 
           {/* ZXX Tab */}
@@ -451,6 +512,14 @@ const MilkteaTracker = () => {
                 <span>健康分析</span>
               </h2>
               <MilkteaHealthChart records={records} drinker="zxx" />
+            </section>
+
+            <section className="bg-card rounded-3xl p-6 shadow-sm border border-blue-500/30">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-blue-600">
+                <span>⭐</span>
+                <span>这杯奶茶评价</span>
+              </h2>
+              <ZhebeiRatingStats records={records} drinker="zxx" />
             </section>
           </TabsContent>
         </Tabs>
@@ -476,6 +545,23 @@ const MilkteaTracker = () => {
                         {`${record.drinker ? record.drinker + ' - ' : ''}${record.brand ? record.brand + ' - ' : ''}${record.drinkName || '奶茶'}`}
                       </p>
                       <p className="text-xs text-muted-foreground">{record.date} {record.time}</p>
+                      {/* 显示评价徽章 */}
+                      {record.zhebeiRating && (
+                        <div className="mt-1">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                            record.zhebeiRating === '夯爆了' 
+                              ? 'bg-green-500/10 text-green-600 border border-green-500/20' 
+                              : record.zhebeiRating === '中不溜'
+                              ? 'bg-yellow-500/10 text-yellow-600 border border-yellow-500/20'
+                              : 'bg-red-500/10 text-red-600 border border-red-500/20'
+                          }`}>
+                            {record.zhebeiRating === '夯爆了' && '🔥'}
+                            {record.zhebeiRating === '中不溜' && '😐'}
+                            {record.zhebeiRating === '拉完了' && '💩'}
+                            {record.zhebeiRating}
+                          </span>
+                        </div>
+                      )}
                       {/* 优化：只有当记录确实有图片时才显示"查看照片"按钮 */}
                       {record.hasImage && (
                         <Button
