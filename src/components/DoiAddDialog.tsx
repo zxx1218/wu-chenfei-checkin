@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import type { NewDoiRecord } from '@/hooks/useDoiRecords';
 import PositionMultiSelect, { POSITIONS } from './PositionMultiSelect';
 import VideoUpload from './VideoUpload';
-import DoiRatingSelector from './DoiRatingSelector'; // 导入评价选择器
+import { EJACULATION_METHODS, SCENES } from '@/lib/utils'; // 导入共享常量
 export { POSITIONS };
 
 interface Props {
@@ -19,13 +19,6 @@ interface Props {
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const nowTime = () => new Date().toTimeString().slice(0, 5);
-
-const SCENES = ['车内', 'zxx家卧室', '小菲家']; // 添加"小菲家"场景选项
-const EJACULATION_METHODS = [
-  '戴套',
-  '用手',
-  '其他'
-];
 
 const DoiAddDialog = ({ onAdd }: Props) => {
   const [open, setOpen] = useState(false);
@@ -36,7 +29,6 @@ const DoiAddDialog = ({ onAdd }: Props) => {
   const [positions, setPositions] = useState<string[]>(['传教士']);
   const [passion, setPassion] = useState(8);
   const [notes, setNotes] = useState('');
-  const [doiRating, setDoiRating] = useState<'超赞' | '还行' | '一般' | '不太行' | null>(null); // 添加DOI评价状态
   const [scene, setScene] = useState<string>('');
   const [femaleOrgasm, setFemaleOrgasm] = useState(false);
   const [oralSex, setOralSex] = useState(false);
@@ -81,7 +73,6 @@ const DoiAddDialog = ({ onAdd }: Props) => {
     setPositions(['传教士']);
     setPassion(8);
     setNotes('');
-    setDoiRating(undefined); // 重置评价
     setScene('');
     setFemaleOrgasm(false);
     setOralSex(false);
@@ -101,7 +92,6 @@ const DoiAddDialog = ({ onAdd }: Props) => {
       position: positions.join('、') || undefined,
       passionScore: passion,
       notes: notes.trim() || undefined,
-      doiRating: doiRating || undefined, // 添加评价
       scene: scene || undefined,
       femaleOrgasm,
       oralSex,
@@ -116,33 +106,25 @@ const DoiAddDialog = ({ onAdd }: Props) => {
       videoFile: videoFile || undefined
     };
 
-    // 只有在有视频文件时才设置上传状态
-    if (videoFile) {
-      setUploading(true);
-      setUploadProgress(0);
-    }
+    setUploading(true);
+    setUploadProgress(0);
 
     try {
-      // 模拟上传进度，仅在有视频文件时执行
-      let interval: NodeJS.Timeout | null = null;
-      if (videoFile) {
-        interval = setInterval(() => {
-          setUploadProgress(prev => {
-            if (prev >= 95) {
-              clearInterval(interval!);
-              return prev;
-            }
-            return prev + 5;
-          });
-        }, 200);
-      }
+      // 模拟上传进度
+      const interval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 95) {
+            clearInterval(interval);
+            return prev;
+          }
+          return prev + 5;
+        });
+      }, 200);
 
       const ok = await onAdd(submissionData as NewDoiRecord);
       
-      if (interval) {
-        clearInterval(interval);
-        setUploadProgress(100);
-      }
+      clearInterval(interval);
+      setUploadProgress(100);
 
       if (ok) {
         toast({ 
@@ -288,7 +270,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
           </div>
 
           {/* 贴纸开关：高潮 & 口交 */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <StickerToggle
               active={femaleOrgasm}
               onClick={() => setFemaleOrgasm((v) => !v)}
@@ -329,12 +311,12 @@ const DoiAddDialog = ({ onAdd }: Props) => {
             <VideoUpload 
               onVideoSelect={handleVideoUpload}
               currentVideoUrl={videoPreview || undefined}
-              uploading={videoFile ? uploading : false} // 仅在有视频文件时显示上传状态
+              uploading={uploading}
               uploadProgress={uploadProgress}
             />
           </div>
 
-          {/* 射精方式 */}
+          {/* 射精方式 - 与编辑页面保持一致 */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-muted-foreground ml-2">🎯 结束方式</label>
             <Select value={ejaculationMethod} onValueChange={setEjaculationMethod}>
