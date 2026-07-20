@@ -20,7 +20,7 @@ interface Props {
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const nowTime = () => new Date().toTimeString().slice(0, 5);
 
-const SCENES = ['车内', 'zxx家卧室'];
+const SCENES = ['车内', 'zxx家卧室', '小菲家']; // 添加"小菲家"场景选项
 const EJACULATION_METHODS = [
   '戴套',
   '用手',
@@ -116,25 +116,33 @@ const DoiAddDialog = ({ onAdd }: Props) => {
       videoFile: videoFile || undefined
     };
 
-    setUploading(true);
-    setUploadProgress(0);
+    // 只有在有视频文件时才设置上传状态
+    if (videoFile) {
+      setUploading(true);
+      setUploadProgress(0);
+    }
 
     try {
-      // 模拟上传进度
-      const interval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 95) {
-            clearInterval(interval);
-            return prev;
-          }
-          return prev + 5;
-        });
-      }, 200);
+      // 模拟上传进度，仅在有视频文件时执行
+      let interval: NodeJS.Timeout | null = null;
+      if (videoFile) {
+        interval = setInterval(() => {
+          setUploadProgress(prev => {
+            if (prev >= 95) {
+              clearInterval(interval!);
+              return prev;
+            }
+            return prev + 5;
+          });
+        }, 200);
+      }
 
       const ok = await onAdd(submissionData as NewDoiRecord);
       
-      clearInterval(interval);
-      setUploadProgress(100);
+      if (interval) {
+        clearInterval(interval);
+        setUploadProgress(100);
+      }
 
       if (ok) {
         toast({ 
@@ -190,7 +198,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
         {/* 可滚动内容 */}
         <div className="px-7 pb-6 max-h-[68vh] overflow-y-auto space-y-5">
           {/* 日期 & 时间 */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-muted-foreground ml-2">📅 日期</label>
               <Input
@@ -279,17 +287,6 @@ const DoiAddDialog = ({ onAdd }: Props) => {
             <Slider value={[passion]} min={1} max={10} step={1} onValueChange={(v) => setPassion(v[0])} />
           </div>
 
-          {/* DOI评价卡片 */}
-          <div className="p-4 rounded-3xl border-2 border-pink-300/40 bg-pink-100/20 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-pink-600">💖 本次体验</span>
-            </div>
-            <DoiRatingSelector 
-              value={doiRating || undefined} 
-              onChange={(rating) => setDoiRating(rating)}
-            />
-          </div>
-
           {/* 贴纸开关：高潮 & 口交 */}
           <div className="grid grid-cols-2 gap-3">
             <StickerToggle
@@ -332,7 +329,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
             <VideoUpload 
               onVideoSelect={handleVideoUpload}
               currentVideoUrl={videoPreview || undefined}
-              uploading={uploading}
+              uploading={videoFile ? uploading : false} // 仅在有视频文件时显示上传状态
               uploadProgress={uploadProgress}
             />
           </div>

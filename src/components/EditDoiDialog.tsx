@@ -12,11 +12,11 @@ import PositionMultiSelect, { POSITIONS } from './PositionMultiSelect';
 import VideoUpload from './VideoUpload'; // 导入视频上传组件
 import DoiRatingSelector from './DoiRatingSelector'; // 导入评价选择器
 
-const SCENES = ['车内', 'zxx家卧室'];
+const SCENES = ['车内', 'zxx家卧室', '小菲家']; // 添加"小菲家"场景选项
 const EJACULATION_METHODS = [
   '戴套内射',
   '不带套内射',
-  '女生用手帮忙',
+  '用手帮忙',
   '其他'
 ];
 
@@ -34,7 +34,6 @@ export default function EditDoiDialog({ record, open, onOpenChange, onSave }: Pr
   const [position, setPosition] = useState<string[]>([]);
   const [passionScore, setPassionScore] = useState(8);
   const [notes, setNotes] = useState('');
-  const [doiRating, setDoiRating] = useState<'超赞' | '还行' | '一般' | '不太行' | undefined>(undefined); // 添加评价状态
   const [scene, setScene] = useState<string>('');
   const [femaleOrgasm, setFemaleOrgasm] = useState(false);
   const [oralSex, setOralSex] = useState(false);
@@ -53,7 +52,6 @@ export default function EditDoiDialog({ record, open, onOpenChange, onSave }: Pr
       setPosition(record.position ? record.position.split('、') : []);
       setPassionScore(record.passionScore || 8);
       setNotes(record.notes || '');
-      setDoiRating(record.doiRating); // 设置评价
       setScene(record.scene || '');
       setFemaleOrgasm(!!record.femaleOrgasm);
       setOralSex(!!record.oralSex);
@@ -73,7 +71,6 @@ export default function EditDoiDialog({ record, open, onOpenChange, onSave }: Pr
       position: position.join('、'),
       passion_score: passionScore,
       notes: notes.trim() || null,
-      doi_rating: doiRating || null, // 添加评价字段
       scene: scene || null,
       female_orgasm: femaleOrgasm,
       oral_sex: oralSex,
@@ -181,17 +178,6 @@ export default function EditDoiDialog({ record, open, onOpenChange, onSave }: Pr
               </div>
             </div>
             <Slider value={[passionScore]} min={1} max={10} step={1} onValueChange={(v) => setPassionScore(v[0])} />
-          </div>
-
-          {/* DOI评价卡片 */}
-          <div className="p-4 rounded-3xl border-2 border-pink-300/40 bg-pink-100/20 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-pink-600">💖 本次体验</span>
-            </div>
-            <DoiRatingSelector 
-              value={doiRating} 
-              onChange={setDoiRating}
-            />
           </div>
 
           {/* 高潮 */}

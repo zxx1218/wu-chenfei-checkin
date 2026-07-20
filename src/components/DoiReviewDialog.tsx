@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { toast } from '@/hooks/use-toast';
 import type { DoiRecord, PartnerReview } from '@/hooks/useDoiRecords';
+import DoiRatingSelector from './DoiRatingSelector'; // 导入评价选择器
 
 const DURATION_OPTIONS = ['太短了 😢', '刚刚好 😍', '稍长 😅', '太久啦 🥵'];
 const POSITION_OPTIONS = ['不太喜欢 🙈', '还可以 🙂', '挺喜欢 😘', '超爱！💗'];
@@ -44,6 +45,7 @@ const DoiReviewDialog = ({ record, open, onOpenChange, onSave }: Props) => {
   const [positionFb, setPositionFb] = useState<string>('');
   const [comment, setComment] = useState('');
   const [reviewer, setReviewer] = useState('');
+  const [doiRating, setDoiRating] = useState<'超赞' | '还行' | '一般' | '不太行' | undefined>(undefined); // 添加本次体验评价状态
 
   useEffect(() => {
     if (record) {
@@ -53,6 +55,7 @@ const DoiReviewDialog = ({ record, open, onOpenChange, onSave }: Props) => {
       setPositionFb(record.partnerPositionFeedback ?? '');
       setComment(record.partnerComment ?? '');
       setReviewer(record.partnerReviewer ?? '');
+      setDoiRating(record.doiRating); // 设置本次体验评价
     }
   }, [record]);
 
@@ -65,6 +68,7 @@ const DoiReviewDialog = ({ record, open, onOpenChange, onSave }: Props) => {
       partnerPositionFeedback: positionFb || undefined,
       partnerComment: comment.trim() || undefined,
       partnerReviewer: reviewer.trim() || undefined,
+      doiRating: doiRating || undefined, // 添加本次体验评价
     });
     if (ok) {
       toast({ title: '评价已提交 💌', description: '甜蜜反馈已记录~' });
@@ -113,6 +117,16 @@ const DoiReviewDialog = ({ record, open, onOpenChange, onSave }: Props) => {
               onChange={(e) => setComment(e.target.value)}
               placeholder="想对TA说的小情话或建议~"
               maxLength={500}
+            />
+          </div>
+          {/* 本次体验评价 - 移至此处作为对方评价的一部分 */}
+          <div className="p-4 rounded-3xl border-2 border-pink-300/40 bg-pink-100/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-pink-600">💖 本次体验</span>
+            </div>
+            <DoiRatingSelector 
+              value={doiRating} 
+              onChange={setDoiRating}
             />
           </div>
         </div>
