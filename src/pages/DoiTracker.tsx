@@ -4,8 +4,9 @@ import { useDoiRecords } from '@/hooks/useDoiRecords';
 import DoiAddDialog from '@/components/DoiAddDialog';
 import DoiStats from '@/components/DoiStats';
 import DoiCharts from '@/components/DoiCharts';
-import DoiSummaryTable from '@/components/DoiSummaryTable';
+import DoiSummaryTabs from '@/components/DoiSummaryTabs';
 import DoiHistory from '@/components/DoiHistory';
+
 const DoiTracker = () => {
   const { records, loading, addRecord, deleteRecord, saveReview, updateRecord } = useDoiRecords();
 
@@ -33,7 +34,7 @@ const DoiTracker = () => {
           <div className="space-y-6">
             <DoiStats records={records} />
             <DoiCharts records={records} />
-            <DoiSummaryTable records={records} />
+            <DoiSummaryTabs records={records} />
             <DoiHistory 
               records={records} 
               onDelete={deleteRecord} 

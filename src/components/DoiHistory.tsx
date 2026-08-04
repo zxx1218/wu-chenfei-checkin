@@ -25,6 +25,17 @@ import { format, subDays } from 'date-fns'; // 导入日期格式化函数
 import { zhCN } from 'date-fns/locale'; // 导入中文locale
 import { DateRange } from 'react-day-picker'; // 导入DateRange类型
 
+// 辅助函数：处理文本中的换行
+const formatTextWithLineBreaks = (text: string) => {
+  if (!text) return null;
+  return text.split('\n').map((line, index, array) => (
+    <span key={index}>
+      {line}
+      {index < array.length - 1 && <br />}
+    </span>
+  ));
+};
+
 interface Props {
   records: DoiRecord[];
   onDelete: (id: string) => void;
@@ -101,18 +112,18 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
   };
 
   const renderItem = (r: DoiRecord, key: string) => (
-    <li key={key} className="bg-muted/30 rounded-xl px-3 py-2">
+    <li key={key} className="bg-muted/30 rounded-xl px-3 py-2 break-words">
       <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-2">
-        <div className="text-sm flex-1 min-w-0 w-full">
-          <div className="font-medium">{r.date} · {r.time}</div>
-          <div className="text-xs text-muted-foreground">
+        <div className="text-sm flex-1 min-w-0 w-full break-words">
+          <div className="font-medium truncate">{r.date} · {r.time}</div>
+          <div className="text-xs text-muted-foreground truncate max-w-full">
             {r.position || '—'} · {r.durationMinutes}分钟 · {'❤️'.repeat(Math.min(r.passionScore || 0, 10))}
           </div>
-          {r.scene && <div className="text-xs text-muted-foreground">场景: {r.scene}</div>}
+          {r.scene && <div className="text-xs text-muted-foreground truncate max-w-full">场景: {r.scene}</div>}
           
           {/* 显示DOI评价 */}
           {r.doiRating && (
-            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1 truncate">
               <span className="font-medium">体验:</span>
               <span className={`
                 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
@@ -132,9 +143,9 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
             {(r.femaleOrgasm === true || r.femaleOrgasm === 1 || r.femaleOrgasm === '1') && <span className="text-green-600">♀️高潮</span>}
             {(r.oralSex === true || r.oralSex === 1 || r.oralSex === '1') && <span className="text-blue-600">👄口交</span>}
             {(r.oralExplosion === true || r.oralExplosion === 1 || r.oralExplosion === '1') && <span className="text-purple-600">💥口爆</span>}
-            {r.ejaculationMethod && <span className="text-orange-600">{r.ejaculationMethod}</span>}
+            {r.ejaculationMethod && <span className="text-orange-600 truncate max-w-[80px]">{r.ejaculationMethod}</span>}
           </div>
-          {r.notes && <div className="text-xs text-muted-foreground mt-1 italic">"{r.notes}"</div>}
+          {r.notes && <div className="text-xs text-muted-foreground mt-1 italic break-words whitespace-pre-line max-w-full">"{formatTextWithLineBreaks(r.notes)}"</div>}
         </div>
         <div className="flex items-center gap-1 shrink-0 self-start sm:self-auto pt-1 sm:pt-0">
           {/* 如果记录有视频，则显示播放视频按钮 */}
@@ -142,7 +153,7 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-8 px-2 text-xs"
+              className="h-8 px-2 text-xs max-sm:w-full max-sm:justify-start"
               onClick={() => handlePlayVideo(r)}
             >
               <Play className="w-3 h-3 mr-1" /> 播放回忆视频
@@ -151,31 +162,31 @@ const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-8 px-2 text-xs"
+            className="h-8 px-2 text-xs max-sm:w-full max-sm:justify-start"
             onClick={() => setEditing(r)} // 添加编辑按钮点击事件
           >
             <Edit3 className="w-3 h-3 mr-1" /> 编辑
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setReviewing(r)}>
+          <Button variant="ghost" size="sm" className="h-8 px-2 text-xs max-sm:w-full max-sm:justify-start" onClick={() => setReviewing(r)}>
             💌 {r.partnerReviewedAt ? '查看/修改' : '评价'}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(r.id)}>
+          <Button variant="ghost" size="icon" className="max-sm:w-8 max-sm:h-8" onClick={() => handleDeleteClick(r.id)}>
             <Trash2 className="w-4 h-4 text-destructive" />
           </Button>
         </div>
       </div>
       {r.partnerReviewedAt && (
-        <div className="mt-2 ml-1 pl-3 border-l-2 border-primary/40 bg-primary/5 rounded-r-lg py-1.5 pr-2">
-          <div className="text-xs font-medium text-primary">
+        <div className="mt-2 ml-1 pl-3 border-l-2 border-primary/40 bg-primary/5 rounded-r-lg py-1.5 pr-2 break-words">
+          <div className="text-xs font-medium text-primary truncate max-w-full">
             💌 {r.partnerReviewer || 'TA'} 的评价
             {r.partnerOverallScore != null && <span className="ml-1">· {'⭐'.repeat(Math.min(r.partnerOverallScore, 10))} {r.partnerOverallScore}/10</span>}
           </div>
           <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-2">
-            {r.partnerDurationFeedback && <span>时长：{r.partnerDurationFeedback}</span>}
-            {r.partnerPositionFeedback && <span>体位：{r.partnerPositionFeedback}</span>}
+            {r.partnerDurationFeedback && <span className="truncate max-w-[100px]">时长：{r.partnerDurationFeedback}</span>}
+            {r.partnerPositionFeedback && <span className="truncate max-w-[100px]">体位：{r.partnerPositionFeedback}</span>}
             {r.partnerPassionScore != null && <span>激情：{r.partnerPassionScore}/10</span>}
           </div>
-          {r.partnerComment && <div className="text-xs mt-1 italic text-foreground/80">"{r.partnerComment}"</div>}
+          {r.partnerComment && <div className="text-xs mt-1 italic text-foreground/80 break-words whitespace-pre-line max-w-full">"{formatTextWithLineBreaks(r.partnerComment)}"</div>}
         </div>
       )}
     </li>

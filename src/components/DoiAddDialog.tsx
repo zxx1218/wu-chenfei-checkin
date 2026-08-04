@@ -180,7 +180,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
         {/* 可滚动内容 */}
         <div className="px-7 pb-6 max-h-[68vh] overflow-y-auto space-y-5">
           {/* 日期 & 时间 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-muted-foreground ml-2">📅 日期</label>
               <Input
@@ -270,7 +270,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
           </div>
 
           {/* 贴纸开关：高潮 & 口交 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <StickerToggle
               active={femaleOrgasm}
               onClick={() => setFemaleOrgasm((v) => !v)}
