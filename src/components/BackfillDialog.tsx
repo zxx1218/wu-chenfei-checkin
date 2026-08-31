@@ -71,6 +71,7 @@ const BackfillDialog = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false); // 图片上传中状态
+  const [fileInputKey, setFileInputKey] = useState(0); // 用于重置文件输入框
 
   const reset = () => {
     setDate(todayISO());
@@ -86,6 +87,7 @@ const BackfillDialog = () => {
     setSelectedImage(null);
     setPreviewImage(null);
     setUploadingImage(false);
+    setFileInputKey(prev => prev + 1); // 重置文件输入框
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -378,6 +380,7 @@ const BackfillDialog = () => {
                   <Label>奶茶照片（可选）</Label>
                   <div className="space-y-2">
                     <Input
+                      key={fileInputKey}
                       type="file"
                       accept="image/*"
                       onChange={handleImageSelect}

@@ -32,6 +32,7 @@ const MilkteaTracker = () => {
   const [loadingImage, setLoadingImage] = useState<string | null>(null); // 正在加载的图片ID
   const [uploadingImage, setUploadingImage] = useState(false); // 图片上传中状态
   const [submitting, setSubmitting] = useState(false); // 提交中状态
+  const [fileInputKey, setFileInputKey] = useState(0); // 用于重置文件输入框
   const [activeTab, setActiveTab] = useState('overall');
 
   const today = new Date().toLocaleDateString('zh-CN', {
@@ -77,6 +78,7 @@ const MilkteaTracker = () => {
       setZhebeiRating('');
       setSelectedImage(null);
       setPreviewImage(null);
+      setFileInputKey(prev => prev + 1); // 重置文件输入框
     }
   };
 
@@ -317,6 +319,7 @@ const MilkteaTracker = () => {
                 <div className="flex gap-2 items-start">
                   <div className="flex-1 space-y-2">
                     <Input
+                      key={fileInputKey}
                       type="file"
                       accept="image/*"
                       onChange={handleImageSelect}
