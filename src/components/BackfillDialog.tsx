@@ -68,6 +68,9 @@ const BackfillDialog = () => {
   const [drinkName, setDrinkName] = useState('');
   const [drinker, setDrinker] = useState<'小菲' | 'zxx' | ''>(''); // 添加饮用者选择
   const [zhebeiRating, setZhebeiRating] = useState<'夯爆了' | '中不溜' | '拉完了' | ''>(''); // 这杯奶茶评价
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false); // 图片上传中状态
 
   const reset = () => {
     setDate(todayISO());
@@ -80,6 +83,48 @@ const BackfillDialog = () => {
     setDrinkName('');
     setDrinker('');
     setZhebeiRating('');
+    setSelectedImage(null);
+    setPreviewImage(null);
+    setUploadingImage(false);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 检查文件大小（限制为 5MB）
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ 
+        title: '图片太大', 
+        description: '请选择小于 5MB 的图片',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+      toast({ 
+        title: '无效的文件类型', 
+        description: '请选择图片文件',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    // 读取文件并转换为 base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setSelectedImage(base64String);
+      setPreviewImage(base64String);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    setPreviewImage(null);
   };
 
   const submitBump = async () => {
@@ -105,6 +150,11 @@ const BackfillDialog = () => {
 
   const submitMilktea = async () => {
     try {
+      // 如果有图片，显示上传中状态
+      if (selectedImage) {
+        setUploadingImage(true);
+      }
+      
       await milkteaApi.create({
         date: isoToZhDate(date),
         time: hmToZhTime(time),
@@ -113,11 +163,22 @@ const BackfillDialog = () => {
         drink_name: mtType === 'milktea' ? drinkName.trim() || null : null,
         drinker: drinker || null, // 添加饮用者字段
         zhebei_rating: zhebeiRating || null, // 添加评价字段
+        image: selectedImage || null, // 添加图片字段
       });
+      
+      // 上传完成后隐藏加载状态
+      if (selectedImage) {
+        setUploadingImage(false);
+      }
+      
       toast({ title: '补录成功 🧋', description: '已添加到奶茶记录' });
       reset();
       setOpen(false);
     } catch (error: any) {
+      // 出错时也要隐藏加载状态
+      if (selectedImage) {
+        setUploadingImage(false);
+      }
       toast({ title: '补录失败', description: error.message, variant: 'destructive' });
     }
   };
@@ -313,12 +374,67 @@ const BackfillDialog = () => {
                     </Button>
                   </div>
                 </div>
+                <div>
+                  <Label>奶茶照片（可选）</Label>
+                  <div className="space-y-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="cursor-pointer"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      支持从相册选择或拍照，图片大小不超过 5MB
+                    </p>
+                    {previewImage && (
+                      <div className="relative inline-block">
+                        <img
+                          src={previewImage}
+                          alt="预览"
+                          className="w-16 h-16 object-cover rounded-lg border border-border"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                          onClick={clearImage}
+                          type="button"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </>
             )}
 
+            {/* 上传进度提示 */}
+            {uploadingImage && mtType === 'milktea' && (
+              <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 animate-pulse">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                  <p className="text-sm font-medium text-primary">正在上传照片，请稍候...</p>
+                </div>
+              </div>
+            )}
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
-              <Button onClick={submitMilktea}>补录</Button>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={uploadingImage}>取消</Button>
+              <Button onClick={submitMilktea} disabled={uploadingImage}>
+                {uploadingImage ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    正在上传...
+                  </>
+                ) : (
+                  '补录'
+                )}
+              </Button>
             </DialogFooter>
           </TabsContent>
         </Tabs>

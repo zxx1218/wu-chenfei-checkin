@@ -30,6 +30,8 @@ const MilkteaTracker = () => {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [viewingImage, setViewingImage] = useState<string>('');
   const [loadingImage, setLoadingImage] = useState<string | null>(null); // 正在加载的图片ID
+  const [uploadingImage, setUploadingImage] = useState(false); // 图片上传中状态
+  const [submitting, setSubmitting] = useState(false); // 提交中状态
   const [activeTab, setActiveTab] = useState('overall');
 
   const today = new Date().toLocaleDateString('zh-CN', {
@@ -58,7 +60,15 @@ const MilkteaTracker = () => {
       });
       return;
     }
+    
+    // 设置提交中状态
+    setSubmitting(true);
+    
     const success = await addMilkteaRecord(brand, drinkName, selectedImage || undefined, drinker || undefined, zhebeiRating || undefined);
+    
+    // 提交完成后隐藏加载状态
+    setSubmitting(false);
+    
     if (success) {
       toast({ title: '🧋 奶茶记录成功！', description: `${drinker ? drinker + ' - ' : ''}${brand ? brand + ' - ' : ''}${drinkName || '一杯奶茶'}${selectedImage ? ' 📷' : ''}${zhebeiRating ? ' ⭐' : ''}` });
       setBrand('');
@@ -305,16 +315,15 @@ const MilkteaTracker = () => {
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-1.5 block">奶茶照片（可选）</label>
                 <div className="flex gap-2 items-start">
-                  <div className="flex-1">
+                  <div className="flex-1 space-y-2">
                     <Input
                       type="file"
                       accept="image/*"
-                      capture="environment"
                       onChange={handleImageSelect}
                       className="cursor-pointer"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      支持拍照或从相册选择，图片大小不超过 5MB
+                    <p className="text-xs text-muted-foreground">
+                      支持从相册选择或拍照，图片大小不超过 5MB
                     </p>
                   </div>
                   {previewImage && (
@@ -340,9 +349,19 @@ const MilkteaTracker = () => {
                 <Button
                   onClick={handleAddMilktea}
                   className="flex-1 rounded-2xl h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                  disabled={submitting}
                 >
-                  <Coffee className="w-5 h-5 mr-2" />
-                  记录喝奶茶
+                  {submitting ? (
+                    <>
+                      <span className="animate-spin mr-2">⏳</span>
+                      正在记录...
+                    </>
+                  ) : (
+                    <>
+                      <Coffee className="w-5 h-5 mr-2" />
+                      记录喝奶茶
+                    </>
+                  )}
                 </Button>
                 <Button
                   onClick={handleNoMilktea}
@@ -354,6 +373,19 @@ const MilkteaTracker = () => {
                   今日很乖
                 </Button>
               </div>
+              {/* 上传进度提示 */}
+              {submitting && (
+                <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 animate-pulse">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
+                    <p className="text-sm font-medium text-primary">正在记录，请稍候...</p>
+                  </div>
+                </div>
+              )}
               {drinker ? (
                 <p className="text-xs text-muted-foreground text-center">
                   {drinker}今天已记录 {getPersonMilkteaCountToday(drinker)} 杯奶茶 🧋
