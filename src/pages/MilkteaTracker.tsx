@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMilkteaRecords } from '@/hooks/useMilkteaRecords';
-import { CalendarDays, Coffee, SmilePlus, Trash2, ArrowLeft, Camera, Image as ImageIcon, Users, User } from 'lucide-react';
+import { CalendarDays, Coffee, SmilePlus, Trash2, ArrowLeft, Camera, Image as ImageIcon, Users, User, Edit2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,8 +14,12 @@ import { MilkteaBudget } from '@/components/MilkteaBudget';
 import { MilkteaComparison } from '@/components/MilkteaComparison';
 import { ZhebeiRatingStats } from '@/components/ZhebeiRatingStats';
 import { ImageDialog } from '@/components/ImageDialog';
+import { EditMilkteaDialog } from '@/components/EditMilkteaDialog';
+import { MilkteaFilter, type MilkteaFilters } from '@/components/MilkteaFilter';
+import { MilkteaCalendar } from '@/components/MilkteaCalendar';
 import { Link } from 'react-router-dom';
 import { milkteaApi } from '@/lib/api';
+import type { MilkteaRecord } from '@/hooks/useMilkteaRecords';
 
 const MilkteaTracker = () => {
   const { records, loading, addMilkteaRecord, addNoMilkteaRecord, deleteRecord, hasNoMilkteaToday, todayMilkteaCount, hasPersonNoMilkteaToday, getPersonMilkteaCountToday } = useMilkteaRecords();
@@ -34,6 +38,17 @@ const MilkteaTracker = () => {
   const [submitting, setSubmitting] = useState(false); // 提交中状态
   const [fileInputKey, setFileInputKey] = useState(0); // 用于重置文件输入框
   const [activeTab, setActiveTab] = useState('overall');
+  
+  // 新增：编辑功能状态
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<MilkteaRecord | null>(null);
+  
+  // 新增：搜索筛选状态
+  const [filters, setFilters] = useState<MilkteaFilters>({});
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // 新增：日历视图状态
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const today = new Date().toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -128,6 +143,70 @@ const MilkteaTracker = () => {
     if (success) {
       toast({ title: '记录已删除' });
     }
+  };
+
+  // 新增：编辑功能
+  const handleEdit = (record: MilkteaRecord) => {
+    setEditingRecord(record);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    // 刷新数据（通过重新获取）
+    window.location.reload(); // 简单方式，实际项目中应该优化
+  };
+
+  // 新增：筛选逻辑
+  const filteredRecords = useMemo(() => {
+    let filtered = records;
+
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(r => 
+        (r.brand && r.brand.toLowerCase().includes(searchLower)) ||
+        (r.drinkName && r.drinkName.toLowerCase().includes(searchLower))
+      );
+    }
+
+    if (filters.drinker) {
+      filtered = filtered.filter(r => r.drinker === filters.drinker);
+    }
+
+    if (filters.brand) {
+      filtered = filtered.filter(r => r.brand === filters.brand);
+    }
+
+    if (filters.zhebeiRating) {
+      filtered = filtered.filter(r => r.zhebeiRating === filters.zhebeiRating);
+    }
+
+    if (filters.dateFrom) {
+      const fromDate = new Date(filters.dateFrom);
+      filtered = filtered.filter(r => {
+        const recordDate = new Date(r.date);
+        return recordDate >= fromDate;
+      });
+    }
+
+    if (filters.dateTo) {
+      const toDate = new Date(filters.dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(r => {
+        const recordDate = new Date(r.date);
+        return recordDate <= toDate;
+      });
+    }
+
+    return filtered;
+  }, [records, filters]);
+
+  // 日历视图点击处理
+  const handleCalendarDateClick = (date: string) => {
+    // 可以跳转到该日期的记录或显示该日期的详情
+    toast({
+      title: `📅 ${date}`,
+      description: '查看该日期的奶茶记录',
+    });
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -403,6 +482,39 @@ const MilkteaTracker = () => {
           )}
         </section>
 
+        {/* 视图切换按钮 */}
+        <div className="flex gap-2 mb-6">
+          <Button
+            variant={showCalendar ? 'default' : 'outline'}
+            onClick={() => setShowCalendar(!showCalendar)}
+            className="flex-1 rounded-xl"
+          >
+            <CalendarDays className="w-4 h-4 mr-2" />
+            {showCalendar ? '列表视图' : '日历视图'}
+          </Button>
+          <Button
+            variant={showFilters ? 'default' : 'outline'}
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex-1 rounded-xl"
+          >
+            <Search className="w-4 h-4 mr-2" />
+            {showFilters ? '隐藏筛选' : '搜索筛选'}
+          </Button>
+        </div>
+
+        {/* 搜索筛选组件 */}
+        {showFilters && (
+          <MilkteaFilter onFilterChange={setFilters} />
+        )}
+
+        {/* 日历视图 */}
+        {showCalendar && (
+          <MilkteaCalendar 
+            records={filteredRecords} 
+            onDateClick={handleCalendarDateClick}
+          />
+        )}
+
         {/* Tabs for different views */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList className="grid w-full grid-cols-3 rounded-2xl">
@@ -560,29 +672,47 @@ const MilkteaTracker = () => {
         </Tabs>
 
         {/* History */}
-        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <span>📋</span>
-            <span>历史记录</span>
-          </h2>
-          {loading ? (
-            <p className="text-center text-muted-foreground py-4">加载中...</p>
-          ) : records.filter(r => r.type === 'milktea').length === 0 ? (
-            <p className="text-center text-muted-foreground py-4">还没有奶茶记录哦~</p>
-          ) : (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {records.filter(r => r.type === 'milktea').map(record => (
-                <div key={record.id} className="flex items-center justify-between bg-accent/30 rounded-2xl px-4 py-3">
-                  <div className="flex items-center gap-3 flex-1">
-                    <span className="text-xl">🧋</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
+        {!showCalendar && (
+          <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <span>📋</span>
+                <span>历史记录</span>
+              </h2>
+              {Object.keys(filters).length > 0 && (
+                <span className="text-xs text-muted-foreground bg-accent px-3 py-1 rounded-full">
+                  已筛选 {filteredRecords.filter(r => r.type === 'milktea').length} 条
+                </span>
+              )}
+            </div>
+            {loading ? (
+              <p className="text-center text-muted-foreground py-4">加载中...</p>
+            ) : filteredRecords.filter(r => r.type === 'milktea').length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">
+                {Object.keys(filters).length > 0 ? '没有找到匹配的记录~' : '还没有奶茶记录哦~'}
+              </p>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {filteredRecords.filter(r => r.type === 'milktea').map(record => (
+                  <div key={record.id} className="flex items-start gap-3 bg-accent/30 rounded-2xl px-4 py-3">
+                    {/* 左侧图标 - 固定宽度 */}
+                    <span className="text-xl flex-shrink-0 mt-0.5">🧋</span>
+                    
+                    {/* 中间内容区域 - 自适应宽度 */}
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      {/* 标题行 - 使用truncate防止溢出 */}
+                      <p className="text-sm font-medium text-foreground truncate break-words">
                         {`${record.drinker ? record.drinker + ' - ' : ''}${record.brand ? record.brand + ' - ' : ''}${record.drinkName || '奶茶'}`}
                       </p>
-                      <p className="text-xs text-muted-foreground">{record.date} {record.time}</p>
-                      {/* 显示评价徽章 */}
+                      
+                      {/* 时间信息 */}
+                      <p className="text-xs text-muted-foreground">
+                        {record.date} {record.time}
+                      </p>
+                      
+                      {/* 评价徽章 */}
                       {record.zhebeiRating && (
-                        <div className="mt-1">
+                        <div>
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                             record.zhebeiRating === '夯爆了' 
                               ? 'bg-green-500/10 text-green-600 border border-green-500/20' 
@@ -597,12 +727,13 @@ const MilkteaTracker = () => {
                           </span>
                         </div>
                       )}
-                      {/* 优化：只有当记录确实有图片时才显示"查看照片"按钮 */}
+                      
+                      {/* 图片按钮 - 只在有图片时显示 */}
                       {record.hasImage && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 px-2 mt-1 text-xs"
+                          className="h-7 px-2 text-xs w-fit"
                           onClick={() => handleViewImage(record.id)}
                           disabled={loadingImage === record.id}
                         >
@@ -613,27 +744,39 @@ const MilkteaTracker = () => {
                             </>
                           ) : (
                             <>
-                              <ImageIcon className="w-3.5 h-3.5 mr-1" />
-                              查看奶茶照片
+                              <ImageIcon className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+                              <span className="truncate">查看照片</span>
                             </>
                           )}
                         </Button>
                       )}
                     </div>
+                    
+                    {/* 右侧操作按钮 - 固定宽度，不 shrink */}
+                    <div className="flex flex-col gap-1 flex-shrink-0 ml-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary flex-shrink-0"
+                        onClick={() => handleEdit(record)}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
+                        onClick={() => handleDelete(record.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(record.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </div>
 
       {/* Image Dialog */}
@@ -642,6 +785,14 @@ const MilkteaTracker = () => {
         onOpenChange={setImageDialogOpen}
         imageUrl={viewingImage}
         title="奶茶照片"
+      />
+
+      {/* Edit Dialog */}
+      <EditMilkteaDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        record={editingRecord}
+        onSuccess={handleEditSuccess}
       />
     </div>
   );
