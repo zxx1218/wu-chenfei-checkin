@@ -24,6 +24,7 @@ export interface DoiRecord {
   oralExplosion?: boolean;
   ejaculationMethod?: string;
   videoUrl?: string; // 添加视频URL字段
+  videoFile?: File; // 添加视频文件字段，用于编辑时上传
 }
 
 export interface NewDoiRecord {
@@ -159,21 +160,40 @@ export function useDoiRecords() {
 
   const updateRecord = async (id: string, updatedData: Partial<DoiRecord>) => {
     try {
-      await doiApi.update(id, {
-        date: updatedData.date,
-        time: updatedData.time,
-        duration_minutes: updatedData.durationMinutes,
-        position: updatedData.position || null,
-        passion_score: updatedData.passionScore ?? null,
-        notes: updatedData.notes || null,
-        doi_rating: updatedData.doiRating || null, // 添加doi评价字段
-        scene: updatedData.scene || null,
-        female_orgasm: updatedData.femaleOrgasm ?? null,
-        oral_sex: updatedData.oralSex ?? null,
-        oral_explosion: updatedData.oralExplosion ?? null,
-        ejaculation_method: updatedData.ejaculationMethod || null,
-        video_url: updatedData.videoUrl || null, // 添加视频URL参数
-      });
+      // 检查是否包含视频文件，如果是则使用FormData方式上传
+      if (updatedData.videoFile && updatedData.videoFile instanceof File) {
+        await doiApi.update(id, {
+          date: updatedData.date,
+          time: updatedData.time,
+          duration_minutes: updatedData.durationMinutes,
+          position: updatedData.position || null,
+          passion_score: updatedData.passionScore ?? null,
+          notes: updatedData.notes || null,
+          doi_rating: updatedData.doiRating || null, // 添加doi评价字段
+          scene: updatedData.scene || null,
+          female_orgasm: updatedData.femaleOrgasm ?? null,
+          oral_sex: updatedData.oralSex ?? null,
+          oral_explosion: updatedData.oralExplosion ?? null,
+          ejaculation_method: updatedData.ejaculationMethod || null,
+          videoFile: updatedData.videoFile, // 传递视频文件
+        });
+      } else {
+        await doiApi.update(id, {
+          date: updatedData.date,
+          time: updatedData.time,
+          duration_minutes: updatedData.durationMinutes,
+          position: updatedData.position || null,
+          passion_score: updatedData.passionScore ?? null,
+          notes: updatedData.notes || null,
+          doi_rating: updatedData.doiRating || null, // 添加doi评价字段
+          scene: updatedData.scene || null,
+          female_orgasm: updatedData.femaleOrgasm ?? null,
+          oral_sex: updatedData.oralSex ?? null,
+          oral_explosion: updatedData.oralExplosion ?? null,
+          ejaculation_method: updatedData.ejaculationMethod || null,
+          video_url: updatedData.videoUrl || null, // 添加视频URL参数
+        });
+      }
       // Refresh the records
       fetchRecords();
       return true;

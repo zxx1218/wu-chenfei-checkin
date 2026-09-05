@@ -57,6 +57,7 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
         position VARCHAR(255),
         passion_score INT,
         notes TEXT,
+        doi_rating VARCHAR(20) NULL DEFAULT NULL,
         oral_sex BOOLEAN,
         oral_explosion BOOLEAN,
         female_orgasm BOOLEAN,
@@ -68,7 +69,8 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
         partner_position_feedback TEXT,
         partner_comment TEXT,
         partner_reviewer VARCHAR(255),
-        partner_reviewed_at TIMESTAMP NULL
+        partner_reviewed_at TIMESTAMP NULL,
+        video_url VARCHAR(500) NULL DEFAULT NULL
       );
     `;
 
@@ -82,7 +84,9 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
         type ENUM('milktea', 'no_milktea') NOT NULL,
         brand VARCHAR(255),
         drink_name VARCHAR(255),
-        image LONGTEXT
+        image LONGTEXT,
+        drinker VARCHAR(50) NULL DEFAULT NULL,
+        zhebei_rating VARCHAR(20) NULL DEFAULT NULL
       );
     `;
 
