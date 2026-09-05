@@ -11,7 +11,14 @@ import type { NewDoiRecord } from '@/hooks/useDoiRecords';
 import PositionMultiSelect, { POSITIONS } from './PositionMultiSelect';
 import VideoUpload from './VideoUpload';
 import { EJACULATION_METHODS, SCENES } from '@/lib/utils'; // 导入共享常量
+import { barkApi } from '@/lib/barkApi'; // 导入新的Bark API服务
 export { POSITIONS };
+
+// 定义推送目标的映射关系
+const PUSH_TARGETS: Record<string, string> = {
+  'zxx': 'XpwbpgBSezBmKajzcGaDG6',
+  '小菲': '7eBD3zF6E66Wqq7cCEjTBA'
+};
 
 interface Props {
   onAdd: (r: NewDoiRecord) => Promise<boolean>;
@@ -38,6 +45,8 @@ const DoiAddDialog = ({ onAdd }: Props) => {
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false); // 添加上传状态
   const [uploadProgress, setUploadProgress] = useState(0); // 添加上传进度
+  // 新增：推送目标状态
+  const [pushTargets, setPushTargets] = useState<string[]>([]);
 
   const handleDurationChange = (value: number[]) => {
     const newDuration = value[0];
@@ -82,6 +91,8 @@ const DoiAddDialog = ({ onAdd }: Props) => {
     setVideoPreview(null);
     setUploading(false);
     setUploadProgress(0);
+    // 重置推送目标
+    setPushTargets([]);
   };
 
   const submit = async () => {
@@ -132,6 +143,46 @@ const DoiAddDialog = ({ onAdd }: Props) => {
           description: '你的美好时刻已被记录下来 💕', 
           className: 'bg-green-50 border-green-200 text-green-800'
         });
+        // 提交成功后，尝试发送推送
+        if (pushTargets.length > 0) {
+          const deviceKeys = pushTargets.map(target => PUSH_TARGETS[target]).filter(Boolean);
+          try {
+            // 调用封装好的barkApi服务
+            const pushResult = await barkApi.push({
+                title: "💕 甜蜜小通知来啦 ~",
+                body: "主人刚刚偷偷记录了一个甜蜜时刻，快去看看并留下你的小爪印吧！😘",
+                level: "active",
+                sound: "multiwayinvitation",
+                icon: "https://picsum.photos/id/237/400/300",
+                group: "doi记录",
+                url: import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://cheerout.cn:40001',
+                device_keys: deviceKeys
+            });
+
+            if (pushResult) {
+              console.log('Bark推送成功');
+              toast({
+                title: '✅ 推送成功',
+                description: `已向 ${pushTargets.join(', ')} 发送提醒 💕`,
+                className: 'bg-blue-50 border-blue-200 text-blue-800'
+              });
+            } else {
+              console.error('Bark推送失败');
+              toast({
+                title: '⚠️ 推送失败',
+                description: '推送请求未能成功发送',
+                variant: 'destructive'
+              });
+            }
+          } catch (err) {
+            console.error('Bark推送网络错误:', err);
+            toast({
+              title: '❌ 推送失败',
+              description: '网络问题导致推送无法发送',
+              variant: 'destructive'
+            });
+          }
+        }
         reset();
         setOpen(false);
       } else {
@@ -342,6 +393,31 @@ const DoiAddDialog = ({ onAdd }: Props) => {
               className="rounded-3xl border-2 border-primary/30 bg-primary/5 focus-visible:border-primary focus-visible:ring-0 resize-none min-h-[88px]"
             />
           </div>
+          
+          {/* 推送目标选择 */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-muted-foreground ml-2">🔔 要推送给谁？</label>
+            <div className="flex gap-2">
+              {Object.keys(PUSH_TARGETS).map((target) => (
+                <button
+                  key={target}
+                  type="button"
+                  onClick={() => setPushTargets(prev => 
+                    prev.includes(target) 
+                      ? prev.filter(t => t !== target) 
+                      : [...prev, target]
+                  )}
+                  className={`flex-1 py-2 px-3 rounded-xl border-2 transition-all ${
+                    pushTargets.includes(target)
+                      ? 'bg-primary text-primary-foreground border-primary shadow-[0_6px_16px_hsl(var(--primary)/0.35)]'
+                      : 'border-primary/40 bg-card text-muted-foreground hover:bg-primary/5'
+                  }`}
+                >
+                  {target}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* 底部按钮栏 */}
@@ -357,8 +433,7 @@ const DoiAddDialog = ({ onAdd }: Props) => {
           <Button
             onClick={submit}
             disabled={uploading}
-            className="flex-[2] h-12 rounded-2xl bg-primary text-primary-foreground font-extrabold shadow-[0_8px_20px_hsl(var(--primary)/0.35)] hover:-translate-y-0.5 hover:bg-primary/90 active:scale-95 transition flex items-center justify-center gap-2"
-          >
+            className="flex-[2] h-12 rounded-2xl bg-primary text-primary-foreground font-extrabold shadow-[0_8px_20px_hsl(var(--primary)/0.35)] hover:-translate-y-0.5 hover:bg-primary/90 active:scale-95 transition flex items-center justify-center gap-2">
             {uploading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
