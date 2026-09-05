@@ -15,6 +15,23 @@ const booleanToDatabaseValue = (value) => {
   return convertToBoolean(value) ? 1 : 0;
 };
 
+// 辅助函数：将日期对象或ISO字符串转换为MySQL DATETIME格式 (YYYY-MM-DD HH:MM:SS)
+const formatDateForMySQL = (dateValue) => {
+  if (!dateValue) return null;
+  const date = new Date(dateValue);
+  if (isNaN(date.getTime())) {
+    console.error(`Invalid date provided to formatDateForMySQL: ${dateValue}`);
+    return null;
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 class DoiRecord {
   static async findAll() {
     const [rows] = await promisePool.query(
@@ -73,6 +90,10 @@ class DoiRecord {
         if (['oral_sex', 'female_orgasm', 'oral_explosion'].includes(key)) {
           value = booleanToDatabaseValue(value);
         }
+        // 对于日期时间字段，进行格式化
+        else if (['partner_reviewed_at', 'created_at', 'updated_at'].includes(key)) {
+            value = formatDateForMySQL(value);
+        }
         
         fields.push(`${key} = ?`);
         values.push(value);
@@ -97,14 +118,6 @@ class DoiRecord {
       [id]
     );
     return result.affectedRows > 0;
-  }
-
-  static async findByDate(date) {
-    const [rows] = await promisePool.query(
-      'SELECT * FROM doi_records WHERE date = ? ORDER BY time DESC',
-      [date]
-    );
-    return rows;
   }
 }
 
