@@ -70,7 +70,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <div className="container max-w-lg mx-auto px-4 py-8">
         {/* Header */}
-        <header className="text-center mb-10">
+        <header className="text-center mb-10 animate-fade-in" style={{ animationDelay: '0s', animationFillMode: 'backwards' }}>
           <h1 className="text-3xl font-bold gradient-text mb-4">
             小梨的磕碰记录
           </h1>
@@ -87,7 +87,7 @@ const Index = () => {
 
         {/* Safe streak banner */}
         {safeStreak > 0 && (
-          <div className="mb-6 rounded-3xl p-4 bg-gradient-to-r from-[hsl(var(--safe-green-light))] to-[hsl(var(--accent)/0.2)] border border-[hsl(var(--safe-green)/0.25)] flex items-center gap-3 animate-fade-in">
+          <div className="mb-6 rounded-3xl p-4 bg-gradient-to-r from-[hsl(var(--safe-green-light))] to-[hsl(var(--accent)/0.2)] border border-[hsl(var(--safe-green)/0.25)] flex items-center gap-3 animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'backwards' }}>
             <div className="w-12 h-12 rounded-2xl bg-[hsl(var(--safe-green)/0.15)] flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-[hsl(var(--safe-green))]" />
             </div>
@@ -100,7 +100,7 @@ const Index = () => {
         )}
 
         {/* Check-in Buttons */}
-        <section className="mb-12">
+        <section className="mb-12 animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>
           <CheckInButtons
             onBump={addBumpRecord}
             onSafe={addSafeRecord}
@@ -110,7 +110,7 @@ const Index = () => {
         </section>
 
         {/* Stats Section */}
-        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6 animate-fade-in" style={{ animationDelay: '0.3s', animationFillMode: 'backwards' }}>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <span>📊</span>
             <span>统计分析</span>
@@ -119,7 +119,7 @@ const Index = () => {
         </section>
 
         {/* Achievements Section */}
-        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6 animate-fade-in" style={{ animationDelay: '0.4s', animationFillMode: 'backwards' }}>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <span>🏅</span>
             <span>成就徽章</span>
@@ -128,7 +128,7 @@ const Index = () => {
         </section>
 
         {/* Trend Chart Section */}
-        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6 animate-fade-in" style={{ animationDelay: '0.5s', animationFillMode: 'backwards' }}>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <span>📈</span>
             <span>趋势图表</span>
@@ -137,7 +137,7 @@ const Index = () => {
         </section>
 
         {/* Location Heatmap Section */}
-        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6 animate-fade-in" style={{ animationDelay: '0.6s', animationFillMode: 'backwards' }}>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <span>🔥</span>
             <span>碰撞热点</span>
@@ -146,7 +146,7 @@ const Index = () => {
         </section>
 
         {/* Insights Section */}
-        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6">
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 mb-6 animate-fade-in" style={{ animationDelay: '0.7s', animationFillMode: 'backwards' }}>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <span>🧠</span>
             <span>智能洞察</span>
@@ -155,7 +155,7 @@ const Index = () => {
         </section>
 
         {/* History Section */}
-        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50">
+        <section className="bg-card rounded-3xl p-6 shadow-sm border border-border/50 animate-fade-in" style={{ animationDelay: '0.8s', animationFillMode: 'backwards' }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <span>📋</span>
@@ -170,7 +170,7 @@ const Index = () => {
             records={records}
             loading={loading}
             onDelete={deleteRecord}
-            onEdit={(r) => setEditing(r)}
+            onEdit={(r) => setEditing(null)}
           />
         </section>
       </div>
