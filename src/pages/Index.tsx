@@ -12,14 +12,15 @@ import { useRecords } from '@/hooks/useRecords';
 import { useAchievements } from '@/hooks/useAchievements';
 import { CalendarDays, Download, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BumpRecord } from '@/types/record';
+import { BumpRecord, SeverityLevel } from '@/types/record';
 import { toast } from 'sonner';
+import { bumpApi } from '@/lib/api';
 
 const Index = () => {
   const {
     records, allRecords, loading,
-    addBumpRecord, addSafeRecord, deleteRecord, updateRecord,
-    setFilterDateRange, hasSafeRecordToday, safeStreak,
+    addBumpRecord, addSafeRecord, deleteRecord,
+    setDateRange, hasSafeRecordToday, safeStreak,
   } = useRecords();
   const achievements = useAchievements(allRecords);
   const [editing, setEditing] = useState<BumpRecord | null>(null);
@@ -57,6 +58,16 @@ const Index = () => {
     a.click();
     URL.revokeObjectURL(url);
     toast.success('已导出 CSV');
+  };
+
+  const updateRecord = async (id: string, patch: { location?: string | null; severity?: SeverityLevel | null }) => {
+    try {
+      await bumpApi.update(id, patch);
+      return true;
+    } catch (error) {
+      console.error('Error updating record:', error);
+      return false;
+    }
   };
   
   const today = new Date().toLocaleDateString('zh-CN', {
@@ -115,7 +126,7 @@ const Index = () => {
             <span>📊</span>
             <span>统计分析</span>
           </h2>
-          <RecordStats records={records} onDateRangeChange={setFilterDateRange} />
+          <RecordStats records={records} onDateRangeChange={setDateRange} />
         </section>
 
         {/* Achievements Section */}
