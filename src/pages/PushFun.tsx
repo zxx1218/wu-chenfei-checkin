@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { barkApi } from '@/lib/barkApi';
+import { pushHistoryApi } from '@/lib/api';
 import { 
   Heart, Sparkles, Gift, Send, ArrowLeft,
-  Music, BookOpen
+  Music, BookOpen, RotateCcw, Calendar
 } from 'lucide-react';
 
 // 推送目标配置
@@ -121,7 +122,39 @@ const PushFun = () => {
   const [selectedSound, setSelectedSound] = useState<string>('multiwayinvitation');
   const [customTitle, setCustomTitle] = useState('');
   const [customBody, setCustomBody] = useState('');
-  const [sentHistory, setSentHistory] = useState<Array<{ title: string; body: string; time: string; target: string }>>([]);
+  const [pushHistory, setPushHistory] = useState<Array<{ 
+    id: string; 
+    title: string; 
+    body: string; 
+    time: string; 
+    target: string;
+    created_at: string;
+    sound?: string;
+  }>>([]);
+
+  // 加载历史记录
+  useEffect(() => {
+    fetchPushHistory();
+  }, []);
+
+  const fetchPushHistory = async () => {
+    try {
+      const response = await pushHistoryApi.getAll();
+      if (response && response.data) {
+        setPushHistory(response.data.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          body: item.body,
+          time: new Date(item.created_at).toLocaleString('zh-CN'),
+          target: item.target,
+          created_at: item.created_at,
+          sound: item.sound || 'multiwayinvitation'
+        })));
+      }
+    } catch (error) {
+      console.error('获取推送历史失败:', error);
+    }
+  };
 
   const handleSendPush = async (message: { title: string; body: string }) => {
     if (!selectedTarget) {
@@ -148,16 +181,25 @@ const PushFun = () => {
       });
 
       if (result) {
+        // 保存到数据库
+        await pushHistoryApi.create({
+          title: message.title,
+          body: message.body,
+          target: selectedTarget,
+          device_key: deviceKey,
+          sound: selectedSound,
+          status: 'success'
+        });
+
         toast({
           title: '✅ 发送成功',
           description: `已向 ${selectedTarget} 发送消息 💕`,
           className: 'bg-blue-50 border-blue-200 text-blue-800'
         });
-        // 添加到历史记录
-        setSentHistory(prev => [
-          { title: message.title, body: message.body, time: new Date().toLocaleString('zh-CN'), target: selectedTarget },
-          ...prev.slice(0, 9) // 只保留最近10条
-        ]);
+
+        // 重新加载历史记录
+        fetchPushHistory();
+
         // 清空自定义消息输入框
         setCustomTitle('');
         setCustomBody('');
@@ -190,6 +232,13 @@ const PushFun = () => {
       return;
     }
     handleSendPush({ title: customTitle, body: customBody });
+  };
+
+  // 再次发送功能
+  const handleResend = async (item: any) => {
+    setSelectedTarget(item.target);
+    setSelectedSound(item.sound || 'multiwayinvitation');
+    await handleSendPush({ title: item.title, body: item.body });
   };
 
   const getRandomMessage = (messages: Array<{ title: string; body: string }>) => {
@@ -386,34 +435,80 @@ const PushFun = () => {
           </CardContent>
         </Card>
 
-        {/* 发送历史 */}
-        {sentHistory.length > 0 && (
+        {/* 历史记录 */}
+        {pushHistory.length > 0 && (
           <Card className="bg-white/90 backdrop-blur border-purple-100 shadow-lg animate-fade-in" style={{ animationDelay: '0.5s', animationFillMode: 'backwards' }}>
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-3">
                 <BookOpen className="w-5 h-5 text-purple-500" />
-                <h2 className="font-semibold text-gray-800">最近发送</h2>
+                <h2 className="font-semibold text-gray-800">历史记录</h2>
                 <Badge variant="secondary" className="ml-auto text-xs">
-                  {sentHistory.length}
+                  {pushHistory.length}
                 </Badge>
               </div>
               
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {sentHistory.map((item, index) => (
-                  <div
-                    key={index}
-                    className="p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border border-purple-100 hover:shadow-md transition-all"
-                  >
-                    <div className="flex items-start justify-between mb-1">
-                      <span className="text-xs font-medium text-purple-600">
-                        {item.target === '小菲' ? '👸' : '🤴'} {item.target}
-                      </span>
-                      <span className="text-xs text-gray-500">{item.time}</span>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {(() => {
+                  // 按日期分组
+                  const groupedByDate: Record<string, any[]> = {};
+                  pushHistory.forEach(item => {
+                    const date = new Date(item.created_at).toLocaleDateString('zh-CN', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    });
+                    if (!groupedByDate[date]) {
+                      groupedByDate[date] = [];
+                    }
+                    groupedByDate[date].push(item);
+                  });
+
+                  // 按日期排序（最新的在前）
+                  const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+                    return new Date(b).getTime() - new Date(a).getTime();
+                  });
+
+                  return sortedDates.map((date) => (
+                    <div key={date} className="space-y-2">
+                      {/* 日期标题 */}
+                      <div className="flex items-center gap-2 py-2 px-3 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg">
+                        <Calendar className="w-4 h-4 text-purple-600" />
+                        <span className="text-sm font-semibold text-purple-700">{date}</span>
+                      </div>
+                      
+                      {/* 该日期的记录 */}
+                      <div className="space-y-2 pl-2">
+                        {groupedByDate[date].map((item, index) => (
+                          <div
+                            key={index}
+                            className="p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border border-purple-100 hover:shadow-md transition-all"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-purple-600">
+                                  {item.target === '小菲' ? '👸' : '🤴'} {item.target}
+                                </span>
+                                <span className="text-xs text-gray-500">{item.time.split(' ')[1]}</span>
+                              </div>
+                              <Button
+                                onClick={() => handleResend(item)}
+                                disabled={sending}
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs hover:bg-purple-100"
+                              >
+                                <RotateCcw className="w-3 h-3 mr-1" />
+                                再次发送
+                              </Button>
+                            </div>
+                            <p className="text-sm font-medium text-gray-800 line-clamp-1">{item.title}</p>
+                            <p className="text-xs text-gray-600 line-clamp-2 mt-1">{item.body}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-sm font-medium text-gray-800 line-clamp-1">{item.title}</p>
-                    <p className="text-xs text-gray-600 line-clamp-2 mt-1">{item.body}</p>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             </CardContent>
           </Card>

@@ -11,6 +11,7 @@ const bumpRecordsRouter = require('./routes/bumpRecords');
 const doiRecordsRouter = require('./routes/doiRecords');
 const milkteaRecordsRouter = require('./routes/milkteaRecords');
 const userSettingsRouter = require('./routes/userSettings');
+const pushHistoryRouter = require('./routes/pushHistory');
 
 const app = express();
 const PORT = process.env.PORT || 20010;
@@ -74,6 +75,7 @@ app.use('/api/bump-records', bumpRecordsRouter);
 app.use('/api/doi-records', doiRecordsRouter);
 app.use('/api/milktea-records', milkteaRecordsRouter);
 app.use('/api/user-settings', userSettingsRouter);
+app.use('/api/push-history', pushHistoryRouter);
 
 // 根路径
 app.get('/', (req, res) => {

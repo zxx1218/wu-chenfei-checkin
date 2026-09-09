@@ -95,3 +95,13 @@ export const userSettingsApi = {
     axios.put(`${API_BASE_URL}/user-settings/${encodeURIComponent(key)}`, { value }).then(res => res.data),
   delete: (key: string) => axios.delete(`${API_BASE_URL}/user-settings/${encodeURIComponent(key)}`).then(res => res.data),
 };
+
+// Push History API
+export const pushHistoryApi = {
+  getAll: () => axios.get(`${API_BASE_URL}/push-history`).then(res => res.data),
+  getRecent: (limit?: number) => axios.get(`${API_BASE_URL}/push-history/recent${limit ? `?limit=${limit}` : ''}`).then(res => res.data),
+  getById: (id: string) => axios.get(`${API_BASE_URL}/push-history/${id}`).then(res => res.data),
+  create: (data: any) => axios.post(`${API_BASE_URL}/push-history`, data).then(res => res.data),
+  delete: (id: string) => axios.delete(`${API_BASE_URL}/push-history/${id}`).then(res => res.data),
+  getByDate: (date: string) => axios.get(`${API_BASE_URL}/push-history/date/${date}`).then(res => res.data),
+};

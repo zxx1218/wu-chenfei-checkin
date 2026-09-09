@@ -100,6 +100,20 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
       );
     `;
 
+    // SQL语句：创建push_history表
+    const createPushHistoryTable = `
+      CREATE TABLE IF NOT EXISTS push_history (
+        id CHAR(36) NOT NULL PRIMARY KEY,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        title VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        target VARCHAR(50) NOT NULL,
+        device_key VARCHAR(255),
+        sound VARCHAR(100),
+        status ENUM('success', 'failed') DEFAULT 'success'
+      );
+    `;
+
     // 执行SQL语句创建表
     connection.query(createBumpRecordsTable, (err) => {
       if (err) {
@@ -136,12 +150,22 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
             }
 
             console.log('user_settings表创建成功或已存在');
-            
-            console.log('\n数据库初始化完成！');
-            console.log('数据库名:', dbName);
-            console.log('已创建表: bump_records, doi_records, milktea_records, user_settings');
-            
-            connection.end();
+
+            connection.query(createPushHistoryTable, (err) => {
+              if (err) {
+                console.error('创建push_history表失败:', err);
+                connection.end();
+                return;
+              }
+
+              console.log('push_history表创建成功或已存在');
+              
+              console.log('\n数据库初始化完成！');
+              console.log('数据库名:', dbName);
+              console.log('已创建表: bump_records, doi_records, milktea_records, user_settings, push_history');
+              
+              connection.end();
+            });
           });
         });
       });
