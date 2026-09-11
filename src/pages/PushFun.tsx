@@ -9,7 +9,7 @@ import { barkApi } from '@/lib/barkApi';
 import { pushHistoryApi } from '@/lib/api';
 import { 
   Heart, Sparkles, Gift, Send, ArrowLeft,
-  Music, BookOpen, RotateCcw, Calendar
+  Music, BookOpen, RotateCcw, Calendar, Reply
 } from 'lucide-react';
 
 // 推送目标配置
@@ -116,21 +116,31 @@ const BARK_SOUNDS = [
   'update'
 ];
 
+interface PushHistoryItem {
+  id: string;
+  title: string;
+  body: string;
+  time: string;
+  target: string;
+  created_at: string;
+  sound?: string;
+  reply_to_id?: string | null;
+}
+
 const PushFun = () => {
   const [selectedTarget, setSelectedTarget] = useState<string>('');
   const [sending, setSending] = useState(false);
   const [selectedSound, setSelectedSound] = useState<string>('multiwayinvitation');
   const [customTitle, setCustomTitle] = useState('');
   const [customBody, setCustomBody] = useState('');
-  const [pushHistory, setPushHistory] = useState<Array<{ 
-    id: string; 
-    title: string; 
-    body: string; 
-    time: string; 
-    target: string;
-    created_at: string;
-    sound?: string;
-  }>>([]);
+  const [pushHistory, setPushHistory] = useState<PushHistoryItem[]>([]);
+  const [replyingTo, setReplyingTo] = useState<PushHistoryItem | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+
+  // 当前用户（从localStorage获取，默认为zxx）
+  const [currentUser, setCurrentUser] = useState<string>(() => {
+    return localStorage.getItem('currentUser') || 'zxx';
+  });
 
   // 加载历史记录
   useEffect(() => {
@@ -148,7 +158,8 @@ const PushFun = () => {
           time: new Date(item.created_at).toLocaleString('zh-CN'),
           target: item.target,
           created_at: item.created_at,
-          sound: item.sound || 'multiwayinvitation'
+          sound: item.sound || 'multiwayinvitation',
+          reply_to_id: item.reply_to_id || null
         })));
       }
     } catch (error) {
@@ -156,8 +167,15 @@ const PushFun = () => {
     }
   };
 
-  const handleSendPush = async (message: { title: string; body: string }) => {
-    if (!selectedTarget) {
+  const handleSendPush = async (message: { title: string; body: string }, replyTo?: PushHistoryItem) => {
+    // 如果是回复，自动设置目标为原消息的发送方
+    let target = selectedTarget;
+    if (replyTo) {
+      // 如果原消息是发给"小菲"的，回复就发给"zxx"，反之亦然
+      target = replyTo.target === '小菲' ? 'zxx' : '小菲';
+    }
+
+    if (!target) {
       toast({
         title: '⚠️ 请选择接收人',
         description: '先选择要发送给谁哦~',
@@ -168,41 +186,45 @@ const PushFun = () => {
 
     setSending(true);
     try {
-      const deviceKey = PUSH_TARGETS[selectedTarget];
+      const deviceKey = PUSH_TARGETS[target];
       const result = await barkApi.push({
         title: message.title,
         body: message.body,
         level: 'active',
         sound: selectedSound,
         icon: 'https://picsum.photos/id/237/400/300',
-        group: '甜蜜推送',
-        url: import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://cheerout.cn:40001',
+        group: '小🍐的日常自定义推送',
+        url: import.meta.env.VITE_BARK_JUMP_URL || 'http://cheerout.cn:40001',
         device_keys: [deviceKey]
       });
 
       if (result) {
-        // 保存到数据库
+        // 保存到数据库，如果是回复则添加reply_to_id
         await pushHistoryApi.create({
           title: message.title,
           body: message.body,
-          target: selectedTarget,
+          target: target,
           device_key: deviceKey,
           sound: selectedSound,
-          status: 'success'
+          status: 'success',
+          reply_to_id: replyTo?.id || null
         });
 
         toast({
           title: '✅ 发送成功',
-          description: `已向 ${selectedTarget} 发送消息 💕`,
+          description: replyTo 
+            ? `已回复 ${replyTo.target} 💕` 
+            : `已向 ${target} 发送消息 💕`,
           className: 'bg-blue-50 border-blue-200 text-blue-800'
         });
 
         // 重新加载历史记录
         fetchPushHistory();
 
-        // 清空自定义消息输入框
+        // 清空自定义消息输入框和回复状态
         setCustomTitle('');
         setCustomBody('');
+        setReplyingTo(null);
       } else {
         toast({
           title: '❌ 发送失败',
@@ -231,11 +253,44 @@ const PushFun = () => {
       });
       return;
     }
-    handleSendPush({ title: customTitle, body: customBody });
+    handleSendPush({ title: customTitle, body: customBody }, replyingTo || undefined);
+  };
+
+  // 回复功能
+  const handleReply = (item: PushHistoryItem) => {
+    setReplyingTo(item);
+    // 自动填充回复内容
+    setCustomTitle(`回复 @${item.target}`);
+    setCustomBody('');
+    // 滚动到自定义消息区域
+    setTimeout(() => {
+      const customMessageSection = document.querySelector('textarea');
+      customMessageSection?.focus();
+    }, 100);
+  };
+
+  // 取消回复
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+    setCustomTitle('');
+    setCustomBody('');
+  };
+
+  // 展开/折叠回复
+  const toggleExpandReply = (id: string) => {
+    setExpandedReplies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   // 再次发送功能
-  const handleResend = async (item: any) => {
+  const handleResend = async (item: PushHistoryItem) => {
     setSelectedTarget(item.target);
     setSelectedSound(item.sound || 'multiwayinvitation');
     await handleSendPush({ title: item.title, body: item.body });
@@ -243,6 +298,26 @@ const PushFun = () => {
 
   const getRandomMessage = (messages: Array<{ title: string; body: string }>) => {
     return messages[Math.floor(Math.random() * messages.length)];
+  };
+
+  // 获取发送人显示名称
+  const getSenderDisplay = (target: string) => {
+    // target是接收人，所以发送人是另一个
+    const sender = target === '小菲' ? 'zxx' : '小菲';
+    return {
+      name: sender,
+      icon: sender === '小菲' ? '👸' : '🤴',
+      isCurrentUser: sender === currentUser
+    };
+  };
+
+  // 获取接收人显示名称
+  const getReceiverDisplay = (target: string) => {
+    return {
+      name: target,
+      icon: target === '小菲' ? '👸' : '🤴',
+      isCurrentUser: target === currentUser
+    };
   };
 
   return (
@@ -390,6 +465,30 @@ const PushFun = () => {
               <h2 className="font-semibold text-gray-800">自定义消息</h2>
             </div>
             
+            {/* 回复提示 */}
+            {replyingTo && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Reply className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700">正在回复 @{replyingTo.target}</span>
+                  </div>
+                  <Button
+                    onClick={handleCancelReply}
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs hover:bg-blue-100"
+                  >
+                    取消回复
+                  </Button>
+                </div>
+                <div className="text-xs text-gray-600 pl-6">
+                  <p className="font-medium line-clamp-1">{replyingTo.title}</p>
+                  <p className="line-clamp-2">{replyingTo.body}</p>
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -399,7 +498,7 @@ const PushFun = () => {
                   type="text"
                   value={customTitle}
                   onChange={(e) => setCustomTitle(e.target.value)}
-                  placeholder="输入消息标题..."
+                  placeholder={replyingTo ? "输入回复标题..." : "输入消息标题..."}
                   maxLength={50}
                   className="w-full px-3 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white text-gray-700"
                 />
@@ -412,7 +511,7 @@ const PushFun = () => {
                 <textarea
                   value={customBody}
                   onChange={(e) => setCustomBody(e.target.value)}
-                  placeholder="输入你想说的话..."
+                  placeholder={replyingTo ? "输入你的回复..." : "输入你想说的话..."}
                   maxLength={200}
                   rows={3}
                   className="w-full px-3 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white text-gray-700 resize-none"
@@ -421,11 +520,11 @@ const PushFun = () => {
               
               <Button
                 onClick={handleSendCustomMessage}
-                disabled={sending || !selectedTarget || !customTitle.trim() || !customBody.trim()}
+                disabled={sending || (!selectedTarget && !replyingTo) || !customTitle.trim() || !customBody.trim()}
                 className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-md transition-all"
               >
                 <Send className="w-4 h-4 mr-2" />
-                发送自定义消息
+                {replyingTo ? '发送回复' : '发送自定义消息'}
               </Button>
               
               <p className="text-xs text-gray-500 text-center">
@@ -445,6 +544,33 @@ const PushFun = () => {
                 <Badge variant="secondary" className="ml-auto text-xs">
                   {pushHistory.length}
                 </Badge>
+              </div>
+              
+              {/* 当前用户切换器（用于测试） */}
+              <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-green-700">当前视角：</span>
+                    <Badge variant={currentUser === 'zxx' ? 'default' : 'outline'} className="text-xs">
+                      {currentUser === 'zxx' ? '🤴 zxx' : '👸 小菲'}
+                    </Badge>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      const newUser = currentUser === 'zxx' ? '小菲' : 'zxx';
+                      setCurrentUser(newUser);
+                      localStorage.setItem('currentUser', newUser);
+                    }}
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs hover:bg-green-100 text-green-700"
+                  >
+                    切换视角
+                  </Button>
+                </div>
+                <p className="text-xs text-green-600 mt-1">
+                  💡 绿色标记表示当前用户发送的消息
+                </p>
               </div>
               
               <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -478,33 +604,127 @@ const PushFun = () => {
                       
                       {/* 该日期的记录 */}
                       <div className="space-y-2 pl-2">
-                        {groupedByDate[date].map((item, index) => (
-                          <div
-                            key={index}
-                            className="p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border border-purple-100 hover:shadow-md transition-all"
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium text-purple-600">
-                                  {item.target === '小菲' ? '👸' : '🤴'} {item.target}
-                                </span>
-                                <span className="text-xs text-gray-500">{item.time.split(' ')[1]}</span>
-                              </div>
-                              <Button
-                                onClick={() => handleResend(item)}
-                                disabled={sending}
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-xs hover:bg-purple-100"
+                        {groupedByDate[date].map((item, index) => {
+                          // 查找是否有回复这条消息的记录
+                          const replies = pushHistory.filter(r => r.reply_to_id === item.id);
+                          const hasReplies = replies.length > 0;
+                          
+                          return (
+                            <div key={index} className="space-y-2">
+                              {/* 原消息 */}
+                              <div
+                                className={`p-3 rounded-lg border transition-all ${
+                                  item.reply_to_id 
+                                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 ml-4' 
+                                    : 'bg-gradient-to-r from-pink-50 to-purple-50 border-purple-100'
+                                } hover:shadow-md`}
                               >
-                                <RotateCcw className="w-3 h-3 mr-1" />
-                                再次发送
-                              </Button>
+                                {/* 如果是回复消息，显示引用标识 */}
+                                {item.reply_to_id && (
+                                  <div className="flex items-center gap-1 mb-2 text-xs text-blue-600">
+                                    <Reply className="w-3 h-3" />
+                                    <span className="font-medium">回复消息</span>
+                                  </div>
+                                )}
+                                
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    {/* 显示发送人 → 接收人 */}
+                                    {(() => {
+                                      const sender = getSenderDisplay(item.target);
+                                      const receiver = getReceiverDisplay(item.target);
+                                      return (
+                                        <>
+                                          <span className={`text-xs font-medium ${sender.isCurrentUser ? 'text-green-600' : 'text-purple-600'}`}>
+                                            {sender.icon} {sender.name}
+                                          </span>
+                                          <span className="text-xs text-gray-400">→</span>
+                                          <span className={`text-xs font-medium ${receiver.isCurrentUser ? 'text-green-600' : 'text-purple-600'}`}>
+                                            {receiver.icon} {receiver.name}
+                                          </span>
+                                          <span className="text-xs text-gray-500 ml-1">{item.time.split(' ')[1]}</span>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                  <div className="flex gap-1">
+                                    {!item.reply_to_id && (
+                                      <Button
+                                        onClick={() => handleReply(item)}
+                                        disabled={sending}
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 px-2 text-xs hover:bg-purple-100 text-purple-600"
+                                      >
+                                        <Reply className="w-3 h-3 mr-1" />
+                                        回复
+                                      </Button>
+                                    )}
+                                    <Button
+                                      onClick={() => handleResend(item)}
+                                      disabled={sending}
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs hover:bg-purple-100"
+                                    >
+                                      <RotateCcw className="w-3 h-3 mr-1" />
+                                      再次发送
+                                    </Button>
+                                  </div>
+                                </div>
+                                <p className="text-sm font-medium text-gray-800 line-clamp-1">{item.title}</p>
+                                <p className="text-xs text-gray-600 line-clamp-2 mt-1">{item.body}</p>
+                              </div>
+                              
+                              {/* 显示回复 */}
+                              {hasReplies && (
+                                <div className="ml-4 space-y-2">
+                                  {replies.map((reply, replyIndex) => (
+                                    <div
+                                      key={replyIndex}
+                                      className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 hover:shadow-md transition-all"
+                                    >
+                                      <div className="flex items-start justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                          <Reply className="w-3 h-3 text-blue-600" />
+                                          {/* 显示发送人 → 接收人 */}
+                                          {(() => {
+                                            const sender = getSenderDisplay(reply.target);
+                                            const receiver = getReceiverDisplay(reply.target);
+                                            return (
+                                              <>
+                                                <span className={`text-xs font-medium ${sender.isCurrentUser ? 'text-green-600' : 'text-blue-600'}`}>
+                                                  {sender.icon} {sender.name}
+                                                </span>
+                                                <span className="text-xs text-gray-400">→</span>
+                                                <span className={`text-xs font-medium ${receiver.isCurrentUser ? 'text-green-600' : 'text-blue-600'}`}>
+                                                  {receiver.icon} {receiver.name}
+                                                </span>
+                                                <span className="text-xs text-gray-500 ml-1">{reply.time.split(' ')[1]}</span>
+                                              </>
+                                            );
+                                          })()}
+                                        </div>
+                                        <Button
+                                          onClick={() => handleResend(reply)}
+                                          disabled={sending}
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-7 px-2 text-xs hover:bg-blue-100"
+                                        >
+                                          <RotateCcw className="w-3 h-3 mr-1" />
+                                          再次发送
+                                        </Button>
+                                      </div>
+                                      <p className="text-sm font-medium text-gray-800 line-clamp-1">{reply.title}</p>
+                                      <p className="text-xs text-gray-600 line-clamp-2 mt-1">{reply.body}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                            <p className="text-sm font-medium text-gray-800 line-clamp-1">{item.title}</p>
-                            <p className="text-xs text-gray-600 line-clamp-2 mt-1">{item.body}</p>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ));

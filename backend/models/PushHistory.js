@@ -19,12 +19,12 @@ class PushHistory {
 
   static async create(data) {
     const id = uuidv4();
-    const { title, body, target, device_key, sound, status = 'success' } = data;
+    const { title, body, target, device_key, sound, status = 'success', reply_to_id = null } = data;
     
     const [result] = await promisePool.query(
-      `INSERT INTO push_history (id, title, body, target, device_key, sound, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, title, body, target, device_key, sound, status]
+      `INSERT INTO push_history (id, title, body, target, device_key, sound, status, reply_to_id) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, title, body, target, device_key, sound, status, reply_to_id]
     );
     
     return { id, ...data };
