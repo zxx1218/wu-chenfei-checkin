@@ -213,7 +213,7 @@ const PushFun = () => {
         toast({
           title: '✅ 发送成功',
           description: replyTo 
-            ? `已回复 ${replyTo.target} 💕` 
+            ? `已回复给 ${target} 💕` 
             : `已向 ${target} 发送消息 💕`,
           className: 'bg-blue-50 border-blue-200 text-blue-800'
         });
@@ -259,9 +259,14 @@ const PushFun = () => {
   // 回复功能
   const handleReply = (item: PushHistoryItem) => {
     setReplyingTo(item);
-    // 自动填充回复内容
-    setCustomTitle(`回复 @${item.target}`);
+    
+    // 计算发送人（target是接收人，所以发送人是另一个）
+    const sender = item.target === '小菲' ? 'zxx' : '小菲';
+    
+    // 自动填充回复内容，@发送人
+    setCustomTitle(`回复 @${sender}`);
     setCustomBody('');
+    
     // 滚动到自定义消息区域
     setTimeout(() => {
       const customMessageSection = document.querySelector('textarea');
@@ -471,7 +476,16 @@ const PushFun = () => {
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Reply className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700">正在回复 @{replyingTo.target}</span>
+                    {(() => {
+                      // 计算发送人（target是接收人）
+                      const sender = replyingTo.target === '小菲' ? 'zxx' : '小菲';
+                      const senderIcon = sender === '小菲' ? '👸' : '🤴';
+                      return (
+                        <span className="text-sm font-medium text-blue-700">
+                          正在回复 {senderIcon} @{sender}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <Button
                     onClick={handleCancelReply}
@@ -603,63 +617,55 @@ const PushFun = () => {
                       </div>
                       
                       {/* 该日期的记录 */}
-                      <div className="space-y-2 pl-2">
+                      <div className="space-y-3 pl-2">
                         {groupedByDate[date].map((item, index) => {
-                          // 查找是否有回复这条消息的记录
-                          const replies = pushHistory.filter(r => r.reply_to_id === item.id);
-                          const hasReplies = replies.length > 0;
+                          // 只渲染顶级消息（没有被回复的消息）
+                          if (item.reply_to_id) return null;
+                          
+                          // 查找直接回复这条消息的记录（一级回复）
+                          const directReplies = pushHistory.filter(r => r.reply_to_id === item.id);
+                          const hasReplies = directReplies.length > 0;
                           
                           return (
                             <div key={index} className="space-y-2">
-                              {/* 原消息 */}
+                              {/* 顶级消息 */}
                               <div
-                                className={`p-3 rounded-lg border transition-all ${
-                                  item.reply_to_id 
-                                    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 ml-4' 
-                                    : 'bg-gradient-to-r from-pink-50 to-purple-50 border-purple-100'
-                                } hover:shadow-md`}
+                                className="p-4 rounded-xl border-2 border-purple-200 bg-gradient-to-r from-pink-50 via-purple-50 to-blue-50 hover:shadow-lg transition-all duration-300"
                               >
-                                {/* 如果是回复消息，显示引用标识 */}
-                                {item.reply_to_id && (
-                                  <div className="flex items-center gap-1 mb-2 text-xs text-blue-600">
-                                    <Reply className="w-3 h-3" />
-                                    <span className="font-medium">回复消息</span>
-                                  </div>
-                                )}
-                                
-                                <div className="flex items-start justify-between mb-2">
-                                  <div className="flex items-center gap-2">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     {/* 显示发送人 → 接收人 */}
                                     {(() => {
                                       const sender = getSenderDisplay(item.target);
                                       const receiver = getReceiverDisplay(item.target);
                                       return (
                                         <>
-                                          <span className={`text-xs font-medium ${sender.isCurrentUser ? 'text-green-600' : 'text-purple-600'}`}>
+                                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${sender.isCurrentUser ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}`}>
                                             {sender.icon} {sender.name}
                                           </span>
                                           <span className="text-xs text-gray-400">→</span>
-                                          <span className={`text-xs font-medium ${receiver.isCurrentUser ? 'text-green-600' : 'text-purple-600'}`}>
+                                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${receiver.isCurrentUser ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                                             {receiver.icon} {receiver.name}
                                           </span>
-                                          <span className="text-xs text-gray-500 ml-1">{item.time.split(' ')[1]}</span>
+                                          <span className="text-xs text-gray-500 ml-1 flex items-center gap-1">
+                                            <Calendar className="w-3 h-3" />
+                                            {item.time.split(' ')[1]}
+                                          </span>
                                         </>
                                       );
                                     })()}
                                   </div>
                                   <div className="flex gap-1">
-                                    {!item.reply_to_id && (
-                                      <Button
-                                        onClick={() => handleReply(item)}
-                                        disabled={sending}
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-7 px-2 text-xs hover:bg-purple-100 text-purple-600"
-                                      >
-                                        <Reply className="w-3 h-3 mr-1" />
-                                        回复
-                                      </Button>
-                                    )}
+                                    <Button
+                                      onClick={() => handleReply(item)}
+                                      disabled={sending}
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs hover:bg-purple-100 text-purple-600"
+                                    >
+                                      <Reply className="w-3 h-3 mr-1" />
+                                      回复
+                                    </Button>
                                     <Button
                                       onClick={() => handleResend(item)}
                                       disabled={sending}
@@ -672,54 +678,155 @@ const PushFun = () => {
                                     </Button>
                                   </div>
                                 </div>
-                                <p className="text-sm font-medium text-gray-800 line-clamp-1">{item.title}</p>
-                                <p className="text-xs text-gray-600 line-clamp-2 mt-1">{item.body}</p>
+                                
+                                <div className="mb-2">
+                                  <p className="text-sm font-bold text-gray-800">{item.title}</p>
+                                </div>
+                                <p className="text-sm text-gray-700 leading-relaxed">{item.body}</p>
+                                
+                                {/* 如果有回复，显示回复数量提示 */}
+                                {hasReplies && (
+                                  <div className="mt-3 pt-2 border-t border-purple-200 flex items-center gap-2">
+                                    <Reply className="w-3 h-3 text-purple-500" />
+                                    <span className="text-xs text-purple-600 font-medium">
+                                      {directReplies.length} 条回复
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                               
-                              {/* 显示回复 */}
+                              {/* 显示一级回复 */}
                               {hasReplies && (
-                                <div className="ml-4 space-y-2">
-                                  {replies.map((reply, replyIndex) => (
-                                    <div
-                                      key={replyIndex}
-                                      className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 hover:shadow-md transition-all"
-                                    >
-                                      <div className="flex items-start justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                          <Reply className="w-3 h-3 text-blue-600" />
-                                          {/* 显示发送人 → 接收人 */}
-                                          {(() => {
-                                            const sender = getSenderDisplay(reply.target);
-                                            const receiver = getReceiverDisplay(reply.target);
-                                            return (
-                                              <>
-                                                <span className={`text-xs font-medium ${sender.isCurrentUser ? 'text-green-600' : 'text-blue-600'}`}>
-                                                  {sender.icon} {sender.name}
-                                                </span>
-                                                <span className="text-xs text-gray-400">→</span>
-                                                <span className={`text-xs font-medium ${receiver.isCurrentUser ? 'text-green-600' : 'text-blue-600'}`}>
-                                                  {receiver.icon} {receiver.name}
-                                                </span>
-                                                <span className="text-xs text-gray-500 ml-1">{reply.time.split(' ')[1]}</span>
-                                              </>
-                                            );
-                                          })()}
+                                <div className="ml-6 space-y-2">
+                                  {directReplies.map((reply, replyIndex) => {
+                                    // 查找这条回复的子回复（二级回复）
+                                    const subReplies = pushHistory.filter(r => r.reply_to_id === reply.id);
+                                    
+                                    return (
+                                      <div key={replyIndex} className="space-y-2">
+                                        {/* 一级回复卡片 */}
+                                        <div className="relative p-3 rounded-lg border-l-4 border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-md transition-all">
+                                          {/* 引用线 */}
+                                          <div className="absolute -left-1 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-indigo-400 rounded-full"></div>
+                                          
+                                          {/* 引用原消息摘要 */}
+                                          <div className="mb-2 pl-3 py-2 bg-white/60 rounded border border-blue-100">
+                                            <div className="flex items-center gap-1 mb-1">
+                                              <Reply className="w-2.5 h-2.5 text-blue-500" />
+                                              <span className="text-xs text-blue-600 font-medium">回复：</span>
+                                            </div>
+                                            <p className="text-xs text-gray-600 line-clamp-2 italic">
+                                              {item.title} - {item.body}
+                                            </p>
+                                          </div>
+                                          
+                                          <div className="flex items-start justify-between mb-2 pl-3">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              {(() => {
+                                                const sender = getSenderDisplay(reply.target);
+                                                const receiver = getReceiverDisplay(reply.target);
+                                                return (
+                                                  <>
+                                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${sender.isCurrentUser ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                      {sender.icon} {sender.name}
+                                                    </span>
+                                                    <span className="text-xs text-gray-400">→</span>
+                                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${receiver.isCurrentUser ? 'bg-green-100 text-green-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                                      {receiver.icon} {receiver.name}
+                                                    </span>
+                                                    <span className="text-xs text-gray-500 ml-1">
+                                                      {reply.time.split(' ')[1]}
+                                                    </span>
+                                                  </>
+                                                );
+                                              })()}
+                                            </div>
+                                            <Button
+                                              onClick={() => handleResend(reply)}
+                                              disabled={sending}
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-6 px-2 text-xs hover:bg-blue-100"
+                                            >
+                                              <RotateCcw className="w-3 h-3 mr-1" />
+                                              再次发送
+                                            </Button>
+                                          </div>
+                                          <p className="text-sm text-gray-800 pl-3">{reply.body}</p>
+                                          
+                                          {/* 二级回复提示 */}
+                                          {subReplies.length > 0 && (
+                                            <div className="mt-2 pt-2 border-t border-blue-200 pl-3 flex items-center gap-2">
+                                              <Reply className="w-3 h-3 text-blue-500" />
+                                              <span className="text-xs text-blue-600 font-medium">
+                                                {subReplies.length} 条后续回复
+                                              </span>
+                                            </div>
+                                          )}
                                         </div>
-                                        <Button
-                                          onClick={() => handleResend(reply)}
-                                          disabled={sending}
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-7 px-2 text-xs hover:bg-blue-100"
-                                        >
-                                          <RotateCcw className="w-3 h-3 mr-1" />
-                                          再次发送
-                                        </Button>
+                                        
+                                        {/* 显示二级回复 */}
+                                        {subReplies.length > 0 && (
+                                          <div className="ml-8 space-y-2">
+                                            {subReplies.map((subReply, subIndex) => (
+                                              <div
+                                                key={subIndex}
+                                                className="relative p-3 rounded-lg border-l-4 border-indigo-300 bg-gradient-to-r from-indigo-50 to-purple-50 hover:shadow-md transition-all"
+                                              >
+                                                {/* 引用线 */}
+                                                <div className="absolute -left-1 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-300 to-purple-300 rounded-full"></div>
+                                                
+                                                {/* 引用一级回复摘要 */}
+                                                <div className="mb-2 pl-3 py-2 bg-white/60 rounded border border-indigo-100">
+                                                  <div className="flex items-center gap-1 mb-1">
+                                                    <Reply className="w-2.5 h-2.5 text-indigo-500" />
+                                                    <span className="text-xs text-indigo-600 font-medium">回复：</span>
+                                                  </div>
+                                                  <p className="text-xs text-gray-600 line-clamp-2 italic">
+                                                    {reply.title} - {reply.body}
+                                                  </p>
+                                                </div>
+                                                
+                                                <div className="flex items-start justify-between mb-2 pl-3">
+                                                  <div className="flex items-center gap-2">
+                                                    {(() => {
+                                                      const sender = getSenderDisplay(subReply.target);
+                                                      const receiver = getReceiverDisplay(subReply.target);
+                                                      return (
+                                                        <>
+                                                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${sender.isCurrentUser ? 'bg-green-100 text-green-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                                            {sender.icon} {sender.name}
+                                                          </span>
+                                                          <span className="text-xs text-gray-400">→</span>
+                                                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${receiver.isCurrentUser ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}`}>
+                                                            {receiver.icon} {receiver.name}
+                                                          </span>
+                                                          <span className="text-xs text-gray-500 ml-1">
+                                                            {subReply.time.split(' ')[1]}
+                                                          </span>
+                                                        </>
+                                                      );
+                                                    })()}
+                                                  </div>
+                                                  <Button
+                                                    onClick={() => handleResend(subReply)}
+                                                    disabled={sending}
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-6 px-2 text-xs hover:bg-indigo-100"
+                                                  >
+                                                    <RotateCcw className="w-3 h-3 mr-1" />
+                                                    再次发送
+                                                  </Button>
+                                                </div>
+                                                <p className="text-sm text-gray-800 pl-3">{subReply.body}</p>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
-                                      <p className="text-sm font-medium text-gray-800 line-clamp-1">{reply.title}</p>
-                                      <p className="text-xs text-gray-600 line-clamp-2 mt-1">{reply.body}</p>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>

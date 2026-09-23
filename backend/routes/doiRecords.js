@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const DoiRecord = require('../models/DoiRecord');
 const { upload, extractVideoUrl } = require('../middlewares/videoUpload');
+const logger = require('../config/logger');
 
 // 获取所有DOI记录
 router.get('/', async (req, res) => {
@@ -9,7 +10,7 @@ router.get('/', async (req, res) => {
     const records = await DoiRecord.findAll();
     res.json({ data: records });
   } catch (error) {
-    console.error('获取DOI记录失败:', error);
+    logger.error('获取DOI记录失败:', error);
     res.status(500).json({ error: '获取DOI记录失败' });
   }
 });
@@ -23,7 +24,7 @@ router.get('/:id', async (req, res) => {
     }
     res.json({ data: record });
   } catch (error) {
-    console.error('获取DOI记录失败:', error);
+    logger.error(`获取DOI记录 ${req.params.id} 失败:`, error);
     res.status(500).json({ error: '获取DOI记录失败' });
   }
 });
@@ -38,9 +39,10 @@ router.post('/', upload.single('video'), extractVideoUrl, async (req, res) => {
     };
     
     const record = await DoiRecord.create(recordData);
+    logger.info(`创建新的DOI记录: ${record.id}`);
     res.status(201).json({ data: record });
   } catch (error) {
-    console.error('创建DOI记录失败:', error);
+    logger.error('创建DOI记录失败:', error);
     res.status(500).json({ error: '创建DOI记录失败' });
   }
 });
@@ -58,9 +60,10 @@ router.put('/:id', upload.single('video'), extractVideoUrl, async (req, res) => 
     if (!record) {
       return res.status(404).json({ error: '记录未找到' });
     }
+    logger.info(`更新DOI记录: ${req.params.id}`);
     res.json({ data: record });
   } catch (error) {
-    console.error('更新DOI记录失败:', error);
+    logger.error(`更新DOI记录 ${req.params.id} 失败:`, error);
     res.status(500).json({ error: '更新DOI记录失败' });
   }
 });
@@ -72,9 +75,10 @@ router.delete('/:id', async (req, res) => {
     if (!success) {
       return res.status(404).json({ error: '记录未找到' });
     }
+    logger.info(`删除DOI记录: ${req.params.id}`);
     res.json({ message: '记录删除成功' });
   } catch (error) {
-    console.error('删除DOI记录失败:', error);
+    logger.error(`删除DOI记录 ${req.params.id} 失败:`, error);
     res.status(500).json({ error: '删除DOI记录失败' });
   }
 });
@@ -85,7 +89,7 @@ router.get('/date/:date', async (req, res) => {
     const records = await DoiRecord.findByDate(req.params.date);
     res.json({ data: records });
   } catch (error) {
-    console.error('根据日期获取DOI记录失败:', error);
+    logger.error(`根据日期 ${req.params.date} 获取DOI记录失败:`, error);
     res.status(500).json({ error: '根据日期获取DOI记录失败' });
   }
 });

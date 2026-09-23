@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const cron = require('node-cron');
 const { initializeBucket } = require('./config/minio');
 const AutoCheckinService = require('./services/autoCheckinService');
+const logger = require('./config/logger');
 
 // 导入路由
 const bumpRecordsRouter = require('./routes/bumpRecords');
@@ -19,33 +20,33 @@ const PORT = process.env.PORT || 20010;
 // 初始化MinIO存储桶
 initializeBucket()
   .then(() => {
-    console.log('MinIO初始化成功');
+    logger.info('MinIO初始化成功');
   })
   .catch((err) => {
-    console.error('MinIO初始化失败:', err);
+    logger.error('MinIO初始化失败:', err);
   });
 
 // 设置定时任务：每天0:01自动检查前一天是否有奶茶记录，如果没有则自动打"今日很乖"
 cron.schedule('1 0 * * *', async () => {
-  console.log('Running scheduled auto no-milktea check-in for yesterday...');
+  logger.info('Running scheduled auto no-milktea check-in for yesterday...');
   const result = await AutoCheckinService.autoNoMilkteaForToday();
-  console.log('Scheduled task result:', result);
+  logger.info('Scheduled task result:', result);
 }, {
   timezone: 'Asia/Shanghai'
 });
 
-console.log('Scheduled auto no-milktea check-in at 00:01 every day for yesterday (Asia/Shanghai)');
+logger.info('Scheduled auto no-milktea check-in at 00:01 every day for yesterday (Asia/Shanghai)');
 
 // 设置定时任务：每天0:01自动检查前一天是否有每日一碰记录，如果没有则自动打平安卡
 cron.schedule('1 0 * * *', async () => {
-  console.log('Running scheduled auto safe bump check-in for yesterday...');
+  logger.info('Running scheduled auto safe bump check-in for yesterday...');
   const result = await AutoCheckinService.autoSafeBumpForToday();
-  console.log('Scheduled task result:', result);
+  logger.info('Scheduled task result:', result);
 }, {
   timezone: 'Asia/Shanghai'
 });
 
-console.log('Scheduled auto safe bump check-in at 00:01 every day for yesterday (Asia/Shanghai)');
+logger.info('Scheduled auto safe bump check-in at 00:01 every day for yesterday (Asia/Shanghai)');
 
 // CORS配置 - 修复安全问题
 const corsOptions = {
@@ -59,6 +60,7 @@ const corsOptions = {
         origin.includes('cheerout.cn')) {
       callback(null, true);
     } else {
+      logger.warn(`Not allowed by CORS: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -84,18 +86,19 @@ app.get('/', (req, res) => {
 
 // 错误处理中间件
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  logger.error('Unhandled error:', err);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
 // 404处理
 app.use('*', (req, res) => {
+  logger.warn(`Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ error: 'Route not found' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`Server is running on port ${PORT}`);
+  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 module.exports = app;

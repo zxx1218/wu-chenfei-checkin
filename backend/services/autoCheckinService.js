@@ -1,6 +1,7 @@
 const BumpRecord = require('../models/BumpRecord');
 const MilkteaRecord = require('../models/MilkteaRecord');
 const { v4: uuidv4 } = require('uuid');
+const logger = require('../config/logger');
 
 class AutoCheckinService {
   // 获取昨天的日期字符串（中文格式）- 使用Asia/Shanghai时区
@@ -41,13 +42,13 @@ class AutoCheckinService {
   static async autoSafeCheckin() {
     try {
       const yesterdayStr = this.getYesterdayDateString();
-      console.log(`Checking records for: ${yesterdayStr}`);
+      logger.info(`Checking records for: ${yesterdayStr}`);
 
       // 检查昨天是否已有bump记录
       const bumpRecords = await BumpRecord.findByDate(yesterdayStr);
       
       if (!bumpRecords || bumpRecords.length === 0) {
-        console.log(`No bump records for ${yesterdayStr}, adding auto safe record`);
+        logger.info(`No bump records for ${yesterdayStr}, adding auto safe record`);
         
         const now = new Date();
         const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -60,14 +61,14 @@ class AutoCheckinService {
           severity: null
         });
       } else {
-        console.log(`Bump records exist for ${yesterdayStr}, skipping auto safe check-in`);
+        logger.info(`Bump records exist for ${yesterdayStr}, skipping auto safe check-in`);
       }
 
       // 检查昨天是否已有奶茶记录
       const milkteaRecords = await MilkteaRecord.findByDate(yesterdayStr);
       
       if (!milkteaRecords || milkteaRecords.length === 0) {
-        console.log(`No milktea records for ${yesterdayStr}, adding auto no_milktea record`);
+        logger.info(`No milktea records for ${yesterdayStr}, adding auto no_milktea record`);
         
         const now = new Date();
         const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -80,7 +81,7 @@ class AutoCheckinService {
           drink_name: null
         });
       } else {
-        console.log(`Milktea records exist for ${yesterdayStr}, skipping auto no_milktea check-in`);
+        logger.info(`Milktea records exist for ${yesterdayStr}, skipping auto no_milktea check-in`);
       }
 
       return {
@@ -89,7 +90,7 @@ class AutoCheckinService {
         date: yesterdayStr
       };
     } catch (error) {
-      console.error('Error in auto check-in:', error);
+      logger.error('Error in auto check-in:', error);
       return {
         success: false,
         message: 'Auto check-in failed',
@@ -102,34 +103,34 @@ class AutoCheckinService {
   static async autoNoMilkteaForToday() {
     try {
       const yesterdayStr = this.getYesterdayDateString();
-      console.log(`=== Auto no-milktea check START ===`);
-      console.log(`Target date (yesterday): ${yesterdayStr}`);
-      console.log(`Current server time: ${new Date().toISOString()}`);
-      console.log(`Current Shanghai time: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' })}`);
+      logger.info(`=== Auto no-milktea check START ===`);
+      logger.info(`Target date (yesterday): ${yesterdayStr}`);
+      logger.info(`Current server time: ${new Date().toISOString()}`);
+      logger.info(`Current Shanghai time: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' })}`);
 
       const drinkers = ['小菲', 'zxx'];
       const results = [];
 
       for (const drinker of drinkers) {
-        console.log(`\n--- Checking drinker: ${drinker} ---`);
+        logger.info(`--- Checking drinker: ${drinker} ---`);
         
         // 检查这个人昨天是否已有任何记录
         const existingRecords = await MilkteaRecord.findByDate(yesterdayStr);
-        console.log(`Total records for ${yesterdayStr}: ${existingRecords.length}`);
+        logger.info(`Total records for ${yesterdayStr}: ${existingRecords.length}`);
         if (existingRecords.length > 0) {
-          console.log(`Records details:`, JSON.stringify(existingRecords.map(r => ({
+          logger.info(`Records details:`, { records: existingRecords.map(r => ({
             id: r.id,
             type: r.type,
             drinker: r.drinker,
             date: r.date
-          })), null, 2));
+          }))});
         }
         
         const personRecords = existingRecords.filter(r => r.drinker === drinker);
-        console.log(`Records for ${drinker}: ${personRecords.length}`);
+        logger.info(`Records for ${drinker}: ${personRecords.length}`);
 
         if (personRecords.length === 0) {
-          console.log(`${drinker} has no records for yesterday (${yesterdayStr}), adding auto no_milktea record`);
+          logger.info(`${drinker} has no records for yesterday (${yesterdayStr}), adding auto no_milktea record`);
           
           const now = new Date();
           const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Shanghai' });
@@ -143,7 +144,7 @@ class AutoCheckinService {
             drinker: drinker
           });
           
-          console.log(`✓ Successfully added auto no_milktea record for ${drinker}`);
+          logger.info(`✓ Successfully added auto no_milktea record for ${drinker}`);
           
           results.push({
             drinker,
@@ -151,7 +152,7 @@ class AutoCheckinService {
             success: true
           });
         } else {
-          console.log(`${drinker} already has records for yesterday (${yesterdayStr}), skipping`);
+          logger.info(`${drinker} already has records for yesterday (${yesterdayStr}), skipping`);
           results.push({
             drinker,
             action: 'skipped_has_records',
@@ -160,8 +161,8 @@ class AutoCheckinService {
         }
       }
 
-      console.log(`\n=== Auto no-milktea check END ===`);
-      console.log(`Results:`, JSON.stringify(results, null, 2));
+      logger.info(`\n=== Auto no-milktea check END ===`);
+      logger.info(`Results:`, { results });
 
       return {
         success: true,
@@ -170,7 +171,7 @@ class AutoCheckinService {
         results
       };
     } catch (error) {
-      console.error('Error in auto no-milktea for yesterday:', error);
+      logger.error('Error in auto no-milktea for yesterday:', error);
       return {
         success: false,
         message: 'Auto no-milktea check failed',
@@ -183,17 +184,17 @@ class AutoCheckinService {
   static async autoSafeBumpForToday() {
     try {
       const yesterdayStr = this.getYesterdayDateString();
-      console.log(`=== Auto safe bump check START ===`);
-      console.log(`Target date (yesterday): ${yesterdayStr}`);
-      console.log(`Current server time: ${new Date().toISOString()}`);
-      console.log(`Current Shanghai time: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' })}`);
+      logger.info(`=== Auto safe bump check START ===`);
+      logger.info(`Target date (yesterday): ${yesterdayStr}`);
+      logger.info(`Current server time: ${new Date().toISOString()}`);
+      logger.info(`Current Shanghai time: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' })}`);
 
       // 检查昨天是否已有bump记录
       const existingRecords = await BumpRecord.findByDate(yesterdayStr);
-      console.log(`Total bump records for ${yesterdayStr}: ${existingRecords ? existingRecords.length : 0}`);
+      logger.info(`Total bump records for ${yesterdayStr}: ${existingRecords ? existingRecords.length : 0}`);
 
       if (!existingRecords || existingRecords.length === 0) {
-        console.log(`No bump records for yesterday (${yesterdayStr}), adding auto safe record`);
+        logger.info(`No bump records for yesterday (${yesterdayStr}), adding auto safe record`);
         
         const now = new Date();
         const time = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Shanghai' });
@@ -206,8 +207,8 @@ class AutoCheckinService {
           severity: null
         });
         
-        console.log(`✓ Successfully added auto safe bump record for ${yesterdayStr}`);
-        console.log(`=== Auto safe bump check END ===`);
+        logger.info(`✓ Successfully added auto safe bump record for ${yesterdayStr}`);
+        logger.info(`=== Auto safe bump check END ===`);
         
         return {
           success: true,
@@ -216,8 +217,8 @@ class AutoCheckinService {
           action: 'added_auto_safe_bump'
         };
       } else {
-        console.log(`Bump records exist for yesterday (${yesterdayStr}), skipping auto safe check-in`);
-        console.log(`=== Auto safe bump check END ===`);
+        logger.info(`Bump records exist for yesterday (${yesterdayStr}), skipping auto safe check-in`);
+        logger.info(`=== Auto safe bump check END ===`);
         
         return {
           success: true,
@@ -227,7 +228,7 @@ class AutoCheckinService {
         };
       }
     } catch (error) {
-      console.error('Error in auto safe bump for yesterday:', error);
+      logger.error('Error in auto safe bump for yesterday:', error);
       return {
         success: false,
         message: 'Auto safe bump check failed',

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const BumpRecord = require('../models/BumpRecord');
+const logger = require('../config/logger');
 
 // 获取所有记录
 router.get('/', async (req, res) => {
@@ -8,6 +9,7 @@ router.get('/', async (req, res) => {
     const records = await BumpRecord.findAll();
     res.json({ data: records });
   } catch (error) {
+    logger.error('获取所有碰记录失败:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -21,6 +23,7 @@ router.get('/:id', async (req, res) => {
     }
     res.json({ data: record });
   } catch (error) {
+    logger.error(`获取碰记录 ${req.params.id} 失败:`, error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -29,8 +32,10 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const record = await BumpRecord.create(req.body);
+    logger.info(`创建新的碰记录: ${record.id}`);
     res.status(201).json({ data: record });
   } catch (error) {
+    logger.error('创建碰记录失败:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -42,8 +47,10 @@ router.put('/:id', async (req, res) => {
     if (!success) {
       return res.status(404).json({ error: 'Record not found' });
     }
+    logger.info(`更新碰记录: ${req.params.id}`);
     res.json({ message: 'Record updated successfully' });
   } catch (error) {
+    logger.error(`更新碰记录 ${req.params.id} 失败:`, error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -55,8 +62,10 @@ router.delete('/:id', async (req, res) => {
     if (!success) {
       return res.status(404).json({ error: 'Record not found' });
     }
+    logger.info(`删除碰记录: ${req.params.id}`);
     res.json({ message: 'Record deleted successfully' });
   } catch (error) {
+    logger.error(`删除碰记录 ${req.params.id} 失败:`, error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -67,6 +76,7 @@ router.get('/date/:date', async (req, res) => {
     const records = await BumpRecord.findByDate(req.params.date);
     res.json({ data: records });
   } catch (error) {
+    logger.error(`根据日期 ${req.params.date} 获取碰记录失败:`, error);
     res.status(500).json({ error: error.message });
   }
 });

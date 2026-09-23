@@ -22,62 +22,42 @@ const upload = multer({
 // 上传视频到MinIO
 const uploadVideoToMinio = async (fileBuffer, fileName, mimeType, recordData) => {
   try {
-    // 构建文件名描述部分
-    const descriptionParts = [];
-    
-    const {
-      date, time, durationMinutes, position, passionScore, 
-      oralSex, femaleOrgasm, oralExplosion, ejaculationMethod, scene,
-      partnerOverallScore, partnerPassionScore, partnerDurationFeedback,
-      partnerPositionFeedback, partnerComment, partnerReviewer, notes, // notes 是备注，需要排除
-      ...otherFields
-    } = recordData;
+    // 获取日期，格式化为 YYYYMMDD
+    let dateStr = '';
+    if (recordData.date) {
+      // 移除日期中的连字符，转换为 YYYYMMDD 格式
+      dateStr = recordData.date.replace(/-/g, '');
+    } else {
+      // 如果没有日期，使用当前日期
+      const now = new Date();
+      dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    }
 
-    if (date) descriptionParts.push(`日期_${date}`);
-    if (time) descriptionParts.push(`时间_${time}`);
-    if (durationMinutes) descriptionParts.push(`时长_${durationMinutes}分钟`);
-    if (position) descriptionParts.push(`体位_${position.replace(/、/g, '_')}`); // 替换分隔符为下划线
-    if (passionScore) descriptionParts.push(`激情_${passionScore}分`);
-    if (oralSex !== undefined) descriptionParts.push(`口交_${oralSex ? '是' : '否'}`);
-    if (femaleOrgasm !== undefined) descriptionParts.push(`高潮_${femaleOrgasm ? '是' : '否'}`);
-    if (oralExplosion !== undefined) descriptionParts.push(`口爆_${oralExplosion ? '是' : '否'}`);
-    if (ejaculationMethod) descriptionParts.push(`射精_${ejaculationMethod}`);
-    if (scene) descriptionParts.push(`场景_${scene}`);
-    if (partnerOverallScore) descriptionParts.push(`伴侣总分_${partnerOverallScore}`);
-    if (partnerPassionScore) descriptionParts.push(`伴侣激情_${partnerPassionScore}`);
-    if (partnerDurationFeedback) descriptionParts.push(`伴侣时长_${partnerDurationFeedback}`);
-    if (partnerPositionFeedback) descriptionParts.push(`伴侣体位_${partnerPositionFeedback}`);
-    if (partnerReviewer) descriptionParts.push(`评价者_${partnerReviewer}`);
-    
-    // 生成描述字符串
-    const descriptionString = descriptionParts.join('_');
-    
-    // 生成带有记录信息的文件名
-    const extension = path.extname(fileName) || '.mp4'; // 如果没有扩展名，默认为.mp4
+    // 获取时间（如果存在）
+    let timeStr = '';
+    if (recordData.time) {
+      // 移除时间中的冒号，格式化为 HHMMSS
+      timeStr = recordData.time.replace(/:/g, '');
+    }
+
+    // 生成文件扩展名
+    const extension = path.extname(fileName) || '.mp4';
+
+    // 生成简短的文件名：日期_时间戳.extension
+    // 格式：YYYYMMDD_HHMMSS_时间戳.mp4 或 YYYY-MM-DD_时间戳.mp4
     const timestamp = Date.now();
-    const descriptiveFileName = `${descriptionString}_${timestamp}${extension}`;
-    
-    // 清理文件名中的特殊字符，使其适合用作对象存储键
-    const cleanFileName = descriptiveFileName
-      .replace(/[<>:"/\\|?*]/g, '_') // 替换不允许的字符
-      .replace(/\s+/g, '_') // 替换空格为下划线
-      .replace(/_{2,}/g, '_') // 替换多个连续下划线为单个
-      .substring(0, 200); // 限制长度
-    
+    const shortFileName = timeStr
+      ? `${dateStr}_${timeStr}_${timestamp}${extension}`
+      : `${dateStr}_${timestamp}${extension}`;
+
+    // 清理文件名中的特殊字符
+    const cleanFileName = shortFileName
+      .replace(/[<>:"/\\|?*]/g, '_')
+      .replace(/\s+/g, '_')
+      .replace(/_{2,}/g, '_');
+
     console.log(`开始上传视频到MinIO: ${cleanFileName}, 大小: ${fileBuffer.length} bytes, MIME类型: ${mimeType}`);
     console.log(`目标存储桶: ${bucketName}`);
-    console.log(`记录数据摘要:`, {
-      date: recordData.date,
-      time: recordData.time,
-      duration: recordData.durationMinutes,
-      position: recordData.position,
-      passionScore: recordData.passionScore,
-      oralSex: recordData.oralSex,
-      femaleOrgasm: recordData.femaleOrgasm,
-      oralExplosion: recordData.oralExplosion,
-      ejaculationMethod: recordData.ejaculationMethod,
-      scene: recordData.scene
-    });
     
     // 上传文件到MinIO，使用正确的Content-Type
     await minioClient.putObject(bucketName, cleanFileName, fileBuffer, fileBuffer.length, {
