@@ -13,6 +13,7 @@ const doiRecordsRouter = require('./routes/doiRecords');
 const milkteaRecordsRouter = require('./routes/milkteaRecords');
 const userSettingsRouter = require('./routes/userSettings');
 const pushHistoryRouter = require('./routes/pushHistory');
+const weatherPushSubscriptionRouter = require('./routes/weatherPushSubscription');
 
 const app = express();
 const PORT = process.env.PORT || 20010;
@@ -48,6 +49,42 @@ cron.schedule('1 0 * * *', async () => {
 
 logger.info('Scheduled auto safe bump check-in at 00:01 every day for yesterday (Asia/Shanghai)');
 
+// 动态设置定时推送任务（根据订阅配置）
+async function setupScheduledPushSchedule() {
+  try {
+    const WeatherPushSubscription = require('./models/WeatherPushSubscription');
+    const subscriptions = await WeatherPushSubscription.findEnabled();
+    
+    if (subscriptions.length > 0) {
+      // 获取所有不同的推送时间
+      const pushTimes = [...new Set(subscriptions.map(s => s.push_time))];
+      
+      pushTimes.forEach(pushTime => {
+        const [hour, minute] = pushTime.split(':').map(Number);
+        const cronExpression = `${minute} ${hour} * * *`;
+        
+        cron.schedule(cronExpression, async () => {
+          logger.info(`Running scheduled push at ${pushTime}...`);
+          const WeatherPushService = require('./services/weatherPushService');
+          const result = await WeatherPushService.executeDailyPush();
+          logger.info('Scheduled push result:', result);
+        }, {
+          timezone: 'Asia/Shanghai'
+        });
+        
+        logger.info(`Scheduled push task at ${pushTime} (Asia/Shanghai)`);
+      });
+    } else {
+      logger.info('No enabled push subscriptions, skipping schedule setup');
+    }
+  } catch (error) {
+    logger.error('Error setting up scheduled push schedule:', error);
+  }
+}
+
+// 启动时设置定时推送任务
+setupScheduledPushSchedule();
+
 // CORS配置 - 修复安全问题
 const corsOptions = {
   origin: function (origin, callback) {
@@ -78,6 +115,7 @@ app.use('/api/doi-records', doiRecordsRouter);
 app.use('/api/milktea-records', milkteaRecordsRouter);
 app.use('/api/user-settings', userSettingsRouter);
 app.use('/api/push-history', pushHistoryRouter);
+app.use('/api/weather-push-subscription', weatherPushSubscriptionRouter);
 
 // 根路径
 app.get('/', (req, res) => {

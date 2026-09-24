@@ -105,3 +105,14 @@ export const pushHistoryApi = {
   delete: (id: string) => axios.delete(`${API_BASE_URL}/push-history/${id}`).then(res => res.data),
   getByDate: (date: string) => axios.get(`${API_BASE_URL}/push-history/date/${date}`).then(res => res.data),
 };
+
+// Weather Push Subscription API
+export const weatherPushApi = {
+  getAll: () => axios.get(`${API_BASE_URL}/weather-push-subscription`).then(res => res.data),
+  getEnabled: () => axios.get(`${API_BASE_URL}/weather-push-subscription/enabled`).then(res => res.data),
+  getById: (id: string) => axios.get(`${API_BASE_URL}/weather-push-subscription/${id}`).then(res => res.data),
+  create: (data: any) => axios.post(`${API_BASE_URL}/weather-push-subscription`, data).then(res => res.data),
+  update: (id: string, data: any) => axios.put(`${API_BASE_URL}/weather-push-subscription/${id}`, data).then(res => res.data),
+  delete: (id: string) => axios.delete(`${API_BASE_URL}/weather-push-subscription/${id}`).then(res => res.data),
+  trigger: (target?: string) => axios.post(`${API_BASE_URL}/weather-push-subscription/trigger`, { target }).then(res => res.data),
+};

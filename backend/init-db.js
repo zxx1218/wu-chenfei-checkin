@@ -116,6 +116,24 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
       );
     `;
 
+    // SQL语句：创建weather_push_subscription表
+    const createWeatherPushSubscriptionTable = `
+      CREATE TABLE IF NOT EXISTS weather_push_subscription (
+        id CHAR(36) NOT NULL PRIMARY KEY,
+        push_type VARCHAR(50) NOT NULL DEFAULT 'weather' COMMENT '推送类型（weather-天气推送，其他类型可扩展）',
+        target VARCHAR(50) NOT NULL COMMENT '推送目标（zxx/小菲）',
+        device_key VARCHAR(255) NOT NULL COMMENT 'Bark设备key',
+        push_time VARCHAR(5) NOT NULL DEFAULT '07:00' COMMENT '推送时间（HH:MM格式）',
+        message_template TEXT NULL COMMENT '自定义消息模板（支持变量：{target}, {temp}, {text}, {windDir}, {windScale}, {humidity}）',
+        enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否启用（0-禁用，1-启用）',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_target (target),
+        INDEX idx_enabled (enabled),
+        INDEX idx_push_type (push_type)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='定时推送订阅配置表';
+    `;
+
     // 执行SQL语句创建表
     connection.query(createBumpRecordsTable, (err) => {
       if (err) {
@@ -161,12 +179,22 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
               }
 
               console.log('push_history表创建成功或已存在');
-              
-              console.log('\n数据库初始化完成！');
-              console.log('数据库名:', dbName);
-              console.log('已创建表: bump_records, doi_records, milktea_records, user_settings, push_history');
-              
-              connection.end();
+
+              connection.query(createWeatherPushSubscriptionTable, (err) => {
+                if (err) {
+                  console.error('创建weather_push_subscription表失败:', err);
+                  connection.end();
+                  return;
+                }
+
+                console.log('weather_push_subscription表创建成功或已存在');
+                
+                console.log('\n数据库初始化完成！');
+                console.log('数据库名:', dbName);
+                console.log('已创建表: bump_records, doi_records, milktea_records, user_settings, push_history, weather_push_subscription');
+                
+                connection.end();
+              });
             });
           });
         });

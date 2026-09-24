@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import MilkteaTracker from "./pages/MilkteaTracker";
 import DoiTracker from "./pages/DoiTracker";
 import PushFun from "./pages/PushFun";
+import ScheduledPush from "./pages/ScheduledPush";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/milktea" element={<MilkteaTracker />} />
           <Route path="/doi" element={<DoiTracker />} />
           <Route path="/push-fun" element={<PushFun />} />
+          <Route path="/scheduled-push" element={<ScheduledPush />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
