@@ -19,25 +19,35 @@ class WeatherPushSubscription {
 
   static async create(data) {
     const id = uuidv4();
-    const { target, device_key, push_time = '07:00', enabled = 1, message_template = null, push_type = 'weather' } = data;
+    const { 
+      target, 
+      device_key, 
+      push_time = '07:00', 
+      enabled = 1, 
+      message_template = null, 
+      push_type = 'weather',
+      location_name = null,
+      latitude = null,
+      longitude = null
+    } = data;
     
     const [result] = await promisePool.query(
-      `INSERT INTO weather_push_subscription (id, push_type, target, device_key, push_time, enabled, message_template) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, push_type, target, device_key, push_time, enabled, message_template]
+      `INSERT INTO weather_push_subscription (id, push_type, target, device_key, push_time, enabled, message_template, location_name, latitude, longitude) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, push_type, target, device_key, push_time, enabled, message_template, location_name, latitude, longitude]
     );
     
-    return { id, push_type, target, device_key, push_time, enabled, message_template };
+    return { id, push_type, target, device_key, push_time, enabled, message_template, location_name, latitude, longitude };
   }
 
   static async update(id, data) {
-    const { target, device_key, push_time, enabled, message_template, push_type } = data;
+    const { target, device_key, push_time, enabled, message_template, push_type, location_name, latitude, longitude } = data;
     
     const [result] = await promisePool.query(
       `UPDATE weather_push_subscription 
-       SET target = ?, device_key = ?, push_time = ?, enabled = ?, message_template = ?, push_type = ?
+       SET target = ?, device_key = ?, push_time = ?, enabled = ?, message_template = ?, push_type = ?, location_name = ?, latitude = ?, longitude = ?
        WHERE id = ?`,
-      [target, device_key, push_time, enabled, message_template, push_type || 'weather', id]
+      [target, device_key, push_time, enabled, message_template, push_type || 'weather', location_name, latitude, longitude, id]
     );
     
     return result.affectedRows > 0;

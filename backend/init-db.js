@@ -125,6 +125,9 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
         device_key VARCHAR(255) NOT NULL COMMENT 'Bark设备key',
         push_time VARCHAR(5) NOT NULL DEFAULT '07:00' COMMENT '推送时间（HH:MM格式）',
         message_template TEXT NULL COMMENT '自定义消息模板（支持变量：{target}, {temp}, {text}, {windDir}, {windScale}, {humidity}）',
+        location_name VARCHAR(100) NULL COMMENT '地区名称（如：浙江省湖州市德清县）',
+        latitude DECIMAL(10,6) NULL COMMENT '纬度',
+        longitude DECIMAL(10,6) NULL COMMENT '经度',
         enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否启用（0-禁用，1-启用）',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -132,6 +135,7 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
         INDEX idx_enabled (enabled),
         INDEX idx_push_type (push_type)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='定时推送订阅配置表';
+
     `;
 
     // 执行SQL语句创建表

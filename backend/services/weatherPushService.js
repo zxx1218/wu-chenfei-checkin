@@ -8,11 +8,14 @@ const WEATHER_API_URL = 'https://devapi.qweather.com/v7/weather/now';
 
 class WeatherPushService {
   // 替换模板中的变量
-  static replaceTemplateVariables(template, weatherData, target) {
+  static replaceTemplateVariables(template, weatherData, target, locationName) {
     const { temp, text, windDir, windScale, humidity } = weatherData;
     
     // 根据target确定昵称
     const nickname = target === '小菲' ? '我的小公主' : '亲爱的';
+    
+    // 地区名称
+    const location = locationName || (target === '小菲' ? '浙江省湖州市德清县' : '浙江省湖州市吴兴区');
     
     return template
       .replace(/{target}/g, nickname)
@@ -20,30 +23,34 @@ class WeatherPushService {
       .replace(/{text}/g, text)
       .replace(/{windDir}/g, windDir)
       .replace(/{windScale}/g, windScale)
-      .replace(/{humidity}/g, humidity);
+      .replace(/{humidity}/g, humidity)
+      .replace(/{location}/g, location);
   }
 
   // 可爱的天气消息模板
-  static generateWeatherMessage(weatherData, target) {
+  static generateWeatherMessage(weatherData, target, locationName) {
     const { temp, text, windDir, windScale, humidity } = weatherData;
+    
+    // 地区名称
+    const location = locationName || (target === '小菲' ? '浙江省湖州市德清县' : '浙江省湖州市吴兴区');
     
     // 根据天气状况选择不同的可爱模板
     const templates = {
       sunny: [
-        `☀️ 早安呀${target === '小菲' ? '我的小公主' : '亲爱的'}！今天阳光超级好哦~\n🌡️ 当前温度：${temp}°C\n😊 天气：${text}\n💨 风力：${windDir}${windScale}级\n💧 湿度：${humidity}%\n✨ 记得涂防晒，戴墨镜哦！爱你哟~ 💕`,
-        `🌞 新的一天开始啦！今天的阳光特别温暖呢~\n🌡️ 温度：${temp}°C\n☁️ 天气：${text}\n🍃 微风：${windDir}${windScale}级\n💦 湿度：${humidity}%\n🌸 出门前记得喝水，保持好心情哦！😘`
+        `☀️ 早安呀${target === '小菲' ? '我的小公主' : '亲爱的'}！今天${location}阳光超级好哦~\n🌡️ 当前温度：${temp}°C\n😊 天气：${text}\n💨 风力：${windDir}${windScale}级\n💧 湿度：${humidity}%\n✨ 记得涂防晒，戴墨镜哦！爱你哟~ 💕`,
+        `🌞 新的一天开始啦！今天${location}的阳光特别温暖呢~\n🌡️ 温度：${temp}°C\n☁️ 天气：${text}\n🍃 微风：${windDir}${windScale}级\n💦 湿度：${humidity}%\n🌸 出门前记得喝水，保持好心情哦！😘`
       ],
       cloudy: [
-        `☁️ ${target === '小菲' ? '宝贝' : '亲爱的'}，今天是阴天呢，不过也很舒适哦~\n🌡️ 当前温度：${temp}°C\n🌤️ 天气：${text}\n💨 风力：${windDir}${windScale}级\n💧 湿度：${humidity}%\n🎀 这样的天气最适合散步啦，要不要一起走走？💖`,
+        `☁️ ${target === '小菲' ? '宝贝' : '亲爱的'}，今天${location}是阴天呢，不过也很舒适哦~\n🌡️ 当前温度：${temp}°C\n🌤️ 天气：${text}\n💨 风力：${windDir}${windScale}级\n💧 湿度：${humidity}%\n🎀 这样的天气最适合散步啦，要不要一起走走？💖`,
         `🌥️ 早安！虽然看不到太阳，但心情要像晴天一样哦~\n🌡️ 温度：${temp}°C\n☁️ 天气：${text}\n🍂 微风：${windDir}${windScale}级\n💦 湿度：${humidity}%\n💝 记得带件薄外套，别着凉啦！关心你~ 😊`
       ],
       rainy: [
-        `🌧️ ${target === '小菲' ? '小可爱' : '亲爱的'}，今天下雨了呢！\n🌡️ 当前温度：${temp}°C\n☔ 天气：${text}\n💨 风力：${windDir}${windScale}级\n💧 湿度：${humidity}%\n☂️ 一定要带伞哦！别淋湿了，我会心疼的~ 💕`,
+        `🌧️ ${target === '小菲' ? '小可爱' : '亲爱的'}，今天${location}下雨了呢！\n🌡️ 当前温度：${temp}°C\n☔ 天气：${text}\n💨 风力：${windDir}${windScale}级\n💧 湿度：${humidity}%\n☂️ 一定要带伞哦！别淋湿了，我会心疼的~ 💕`,
         `☔ 下雨天也要开心哦！听雨声也是一种浪漫呢~\n🌡️ 温度：${temp}°C\n🌧️ 天气：${text}\n🍃 微风：${windDir}${windScale}级\n💦 湿度：${humidity}%\n🚗 路滑小心，注意安全！想你啦~ 😘`
       ],
       default: [
-        `🌈 早安${target === '小菲' ? '我的女孩' : '亲爱的'}！新的一天开始啦~\n🌡️ 当前温度：${temp}°C\n🌤️ 天气：${text}\n💨 风力：${windDir}${windScale}级\n💧 湿度：${humidity}%\n✨ 今天也要元气满满哦！加油！💪💕`,
-        `💫 美好的一天从查看天气开始！\n🌡️ 温度：${temp}°C\n☁️ 天气：${text}\n🍂 微风：${windDir}${windScale}级\n💦 湿度：${humidity}%\n🌸 记得照顾好自己，我永远关心你~ 😊💖`
+        `🌈 早安${target === '小菲' ? '我的女孩' : '亲爱的'}！新的一天开始啦~\n📍 地区：${location}\n🌡️ 当前温度：${temp}°C\n🌤️ 天气：${text}\n💨 风力：${windDir}${windScale}级\n💧 湿度：${humidity}%\n✨ 今天也要元气满满哦！加油！💪💕`,
+        `💫 美好的一天从查看天气开始！\n📍 ${location}\n🌡️ 温度：${temp}°C\n☁️ 天气：${text}\n🍂 微风：${windDir}${windScale}级\n💦 湿度：${humidity}%\n🌸 记得照顾好自己，我永远关心你~ 😊💖`
       ]
     };
 
@@ -58,7 +65,7 @@ class WeatherPushService {
   }
 
   // 获取城市天气信息（使用经纬度）
-  static async getWeather(latitude = 39.9042, longitude = 116.4074) {
+  static async getWeather(latitude = 30.8703, longitude = 120.1094) {
     try {
       if (!WEATHER_API_KEY) {
         logger.warn('Weather API key not configured, using mock data');
@@ -114,19 +121,23 @@ class WeatherPushService {
   // 推送天气消息到Bark
   static async pushWeatherMessage(subscription) {
     try {
-      const { target, device_key, message_template } = subscription;
+      const { target, device_key, message_template, location_name, latitude, longitude } = subscription;
       
-      // 获取天气信息（这里使用北京的经纬度，可根据需要修改）
-      const weatherData = await this.getWeather(39.9042, 116.4074);
+      // 获取天气信息：优先使用订阅中的经纬度，否则使用默认值
+      const lat = latitude || (target === '小菲' ? 30.5333 : 30.8703);
+      const lon = longitude || (target === '小菲' ? 120.0833 : 120.1094);
+      
+      logger.info(`Getting weather for ${location_name || 'default location'} (${lat}, ${lon})`);
+      const weatherData = await this.getWeather(lat, lon);
       
       // 生成消息：优先使用自定义模板，否则使用默认模板
       let message;
       if (message_template && message_template.trim()) {
         // 使用自定义模板，替换变量
-        message = this.replaceTemplateVariables(message_template, weatherData, target);
+        message = this.replaceTemplateVariables(message_template, weatherData, target, location_name);
       } else {
         // 使用默认的可爱模板
-        message = this.generateWeatherMessage(weatherData, target);
+        message = this.generateWeatherMessage(weatherData, target, location_name);
       }
       
       // 提取标题（第一行）

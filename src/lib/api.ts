@@ -2,6 +2,22 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
+// Bark设备Key配置（从环境变量读取）
+export const BARK_DEVICE_KEYS = {
+  zxx: import.meta.env.VITE_BARK_KEY_ZXX || '',
+  xiaofei: import.meta.env.VITE_BARK_KEY_XIAOFEI || ''
+};
+
+// 根据target获取对应的device_key
+export const getDeviceKeyByTarget = (target: string): string => {
+  if (target === 'zxx') {
+    return BARK_DEVICE_KEYS.zxx;
+  } else if (target === '小菲') {
+    return BARK_DEVICE_KEYS.xiaofei;
+  }
+  return '';
+};
+
 // Bump Records API
 export const bumpApi = {
   getAll: () => axios.get(`${API_BASE_URL}/bump-records`).then(res => res.data),

@@ -18,8 +18,23 @@ interface ScheduledSubscription {
   push_time: string;
   enabled: number;
   message_template?: string | null;
+  location_name?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at: string;
 }
+
+// 常用城市预设
+const PRESET_LOCATIONS = [
+  { name: '浙江省湖州市德清县', latitude: 30.5333, longitude: 120.0833 },
+  { name: '北京市', latitude: 39.9042, longitude: 116.4074 },
+  { name: '上海市', latitude: 31.2304, longitude: 121.4737 },
+  { name: '广州市', latitude: 23.1291, longitude: 113.2644 },
+  { name: '深圳市', latitude: 22.5431, longitude: 114.0579 },
+  { name: '杭州市', latitude: 30.2741, longitude: 120.1551 },
+  { name: '成都市', latitude: 30.5728, longitude: 104.0668 },
+  { name: '武汉市', latitude: 30.5928, longitude: 114.3055 },
+];
 
 // 推送模块配置
 const PUSH_MODULES = [
@@ -53,7 +68,10 @@ export const ScheduledPushManager = () => {
     device_key: '7eBD3zF6E66Wqq7cCEjTBA',
     push_time: '07:00',
     message_template: '',
-    push_type: 'weather'
+    push_type: 'weather',
+    location_name: '浙江省湖州市德清县',
+    latitude: 30.5333,
+    longitude: 120.0833
   });
 
   // 加载订阅列表
@@ -91,7 +109,9 @@ export const ScheduledPushManager = () => {
     try {
       await weatherPushApi.create({
         ...formData,
-        push_type: activeModule
+        push_type: activeModule,
+        latitude: formData.latitude ? Number(formData.latitude) : null,
+        longitude: formData.longitude ? Number(formData.longitude) : null
       });
       toast.success('添加成功');
       setShowAddForm(false);
@@ -100,7 +120,10 @@ export const ScheduledPushManager = () => {
         device_key: '7eBD3zF6E66Wqq7cCEjTBA', 
         push_time: '07:00', 
         message_template: '',
-        push_type: activeModule
+        push_type: activeModule,
+        location_name: '浙江省湖州市德清县',
+        latitude: 30.5333,
+        longitude: 120.0833
       });
       fetchSubscriptions();
     } catch (error) {
@@ -121,7 +144,10 @@ export const ScheduledPushManager = () => {
         push_time: sub.push_time,
         enabled: sub.enabled,
         message_template: sub.message_template || null,
-        push_type: sub.push_type || 'weather'
+        push_type: sub.push_type || 'weather',
+        location_name: sub.location_name || null,
+        latitude: sub.latitude ? Number(sub.latitude) : null,
+        longitude: sub.longitude ? Number(sub.longitude) : null
       });
       toast.success('更新成功');
       setEditingId(null);
@@ -296,9 +322,59 @@ export const ScheduledPushManager = () => {
                   />
                 </div>
                 <div>
+                  <Label className="text-xs text-gray-600 mb-1 block">地区</Label>
+                  <select
+                    value={sub.location_name || ''}
+                    onChange={(e) => {
+                      const selected = PRESET_LOCATIONS.find(loc => loc.name === e.target.value);
+                      if (selected) {
+                        updateSubscription(sub.id, 'location_name', selected.name);
+                        updateSubscription(sub.id, 'latitude', selected.latitude);
+                        updateSubscription(sub.id, 'longitude', selected.longitude);
+                      } else {
+                        updateSubscription(sub.id, 'location_name', e.target.value);
+                      }
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-blue-200 rounded bg-white"
+                  >
+                    <option value="">自定义</option>
+                    {PRESET_LOCATIONS.map((loc) => (
+                      <option key={loc.name} value={loc.name}>
+                        📍 {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {(sub.location_name && !PRESET_LOCATIONS.find(loc => loc.name === sub.location_name)) && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs text-gray-600 mb-1 block">纬度</Label>
+                      <Input
+                        type="number"
+                        step="0.0001"
+                        value={sub.latitude || ''}
+                        onChange={(e) => updateSubscription(sub.id, 'latitude', parseFloat(e.target.value) || null)}
+                        placeholder="30.5333"
+                        className="w-full text-sm border-blue-200"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600 mb-1 block">经度</Label>
+                      <Input
+                        type="number"
+                        step="0.0001"
+                        value={sub.longitude || ''}
+                        onChange={(e) => updateSubscription(sub.id, 'longitude', parseFloat(e.target.value) || null)}
+                        placeholder="120.0833"
+                        className="w-full text-sm border-blue-200"
+                      />
+                    </div>
+                  </div>
+                )}
+                <div>
                   <Label className="text-xs text-gray-600 mb-1 block">
                     消息模板（可选）
-                    <span className="text-[10px] text-gray-500 font-normal ml-1">变量：{'{target}'}, {'{temp}'}, {'{text}'}</span>
+                    <span className="text-[10px] text-gray-500 font-normal ml-1">变量：{'{target}'}, {'{temp}'}, {'{text}'}, {'{location}'}</span>
                   </Label>
                   <textarea
                     value={sub.message_template || ''}
@@ -325,6 +401,12 @@ export const ScheduledPushManager = () => {
                     <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
                     <span>每天 {sub.push_time}</span>
                   </div>
+                  {sub.location_name && (
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <span className="text-blue-500">📍</span>
+                      <span>{sub.location_name}</span>
+                    </div>
+                  )}
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={sub.enabled ? 'default' : 'secondary'} className="text-xs">
                       {sub.enabled ? '已启用' : '已禁用'}
@@ -434,14 +516,67 @@ export const ScheduledPushManager = () => {
               />
             </div>
             <div>
+              <Label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 block">地区</Label>
+              <select
+                value={formData.location_name || ''}
+                onChange={(e) => {
+                  const selected = PRESET_LOCATIONS.find(loc => loc.name === e.target.value);
+                  if (selected) {
+                    setFormData({ 
+                      ...formData, 
+                      location_name: selected.name,
+                      latitude: selected.latitude,
+                      longitude: selected.longitude
+                    });
+                  } else {
+                    setFormData({ ...formData, location_name: e.target.value });
+                  }
+                }}
+                className="w-full px-3 py-2 text-sm border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              >
+                <option value="">自定义</option>
+                {PRESET_LOCATIONS.map((loc) => (
+                  <option key={loc.name} value={loc.name}>
+                    📍 {loc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {formData.location_name && !PRESET_LOCATIONS.find(loc => loc.name === formData.location_name) && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 block">纬度</Label>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    value={formData.latitude || ''}
+                    onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) || null })}
+                    placeholder="30.5333"
+                    className="w-full text-sm border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 block">经度</Label>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    value={formData.longitude || ''}
+                    onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) || null })}
+                    placeholder="120.0833"
+                    className="w-full text-sm border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+              </div>
+            )}
+            <div>
               <Label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 block">
                 消息模板（可选）
-                <span className="text-xs text-gray-500 font-normal ml-1">支持变量：{'{target}'}, {'{temp}'}, {'{text}'}</span>
+                <span className="text-xs text-gray-500 font-normal ml-1">支持变量：{'{target}'}, {'{temp}'}, {'{text}'}, {'{location}'}</span>
               </Label>
               <textarea
                 value={formData.message_template}
                 onChange={(e) => setFormData({ ...formData, message_template: e.target.value })}
-                placeholder="自定义推送消息模板，留空则使用默认模板。示例：&#10;☀️ 早安{target}！今天温度{temp}°C，天气{text}~"
+                placeholder="自定义推送消息模板，留空则使用默认模板。示例：&#10;☀️ 早安{target}！今天{location}温度{temp}°C，天气{text}~"
                 rows={3}
                 className="w-full px-3 py-2 text-sm border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white resize-none"
               />
