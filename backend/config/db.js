@@ -1,4 +1,6 @@
-require('dotenv').config();
+const path = require('path');
+// 统一使用根目录下的.env文件
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const mysql = require('mysql2');
 
 // 创建数据库连接池

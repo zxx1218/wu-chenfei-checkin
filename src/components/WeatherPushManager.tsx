@@ -10,6 +10,16 @@ import { toast } from 'sonner';
 import { weatherPushApi, getDeviceKeyByTarget } from '@/lib/api';
 import { Cloud, Clock, Send, Plus, Trash2, Edit, RefreshCw, FileText } from 'lucide-react';
 
+// 常用城市预设
+const PRESET_LOCATIONS = [
+  { name: '浙江省湖州市德清县', latitude: 30.5333, longitude: 120.0833 },
+  { name: '浙江省湖州市吴兴区', latitude: 30.8703, longitude: 120.1094 },
+  { name: '浙江省杭州市吴兴区', latitude: 30.2741, longitude: 120.1551 },
+  { name: '山西省太原市小店区', latitude: 37.8706, longitude: 112.5617 },
+  { name: '山西省太原市杏花岭区', latitude: 37.8894, longitude: 112.5644 },
+  { name: '北京市', latitude: 39.9042, longitude: 116.4074 },
+];
+
 interface WeatherSubscription {
   id: string;
   target: string;
@@ -225,13 +235,14 @@ export const WeatherPushManager = () => {
                     setFormData({ 
                       ...formData, 
                       target: newTarget,
-                      device_key: getDeviceKeyByTarget(newTarget)
+                      device_key: newTarget ? getDeviceKeyByTarget(newTarget) : ''
                     });
                   }}
                   className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
                 >
                   <option value="小菲">👸 小菲</option>
                   <option value="zxx">🤴 zxx</option>
+                  <option value="">👤 自定义（需手动填写设备Key）</option>
                 </select>
               </div>
               <div>
@@ -250,9 +261,19 @@ export const WeatherPushManager = () => {
                 type="text"
                 value={formData.device_key}
                 onChange={(e) => setFormData({ ...formData, device_key: e.target.value })}
-                placeholder="输入Bark设备key"
-                className="border-blue-200 focus:border-blue-400"
+                readOnly={formData.target === '小菲' || formData.target === 'zxx'}
+                placeholder={formData.target === '小菲' || formData.target === 'zxx' ? '从.env配置自动获取' : '请输入Bark设备Key'}
+                className={`border-blue-200 ${formData.target === '小菲' || formData.target === 'zxx' ? 'bg-gray-50 cursor-not-allowed opacity-75' : 'bg-white'}`}
               />
+              {formData.target === '小菲' || formData.target === 'zxx' ? (
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 已根据接收人自动从.env配置中读取设备Key
+                </p>
+              ) : (
+                <p className="text-xs text-orange-500 mt-1">
+                  ⚠️ 自定义接收人需要手动填写设备Key
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-3">
@@ -260,43 +281,26 @@ export const WeatherPushManager = () => {
                 <select
                   value={formData.location_name}
                   onChange={(e) => {
-                    const selected = e.target.value;
-                    let lat = '', lon = '';
-                    if (selected === '浙江省湖州市德清县') {
-                      lat = '30.5333';
-                      lon = '120.0833';
-                    } else if (selected === '浙江省湖州市吴兴区') {
-                      lat = '30.8703';
-                      lon = '120.1094';
-                    } else if (selected === '浙江省杭州市吴兴区') {
-                      lat = '30.2741';
-                      lon = '120.1551';
-                    } else if (selected === '山西省太原市小店区') {
-                      lat = '37.8706';
-                      lon = '112.5617';
-                    } else if (selected === '山西省太原市杏花岭区') {
-                      lat = '37.8894';
-                      lon = '112.5644';
-                    } else if (selected === '北京市') {
-                      lat = '39.9042';
-                      lon = '116.4074';
+                    const selected = PRESET_LOCATIONS.find(loc => loc.name === e.target.value);
+                    if (selected) {
+                      setFormData({ 
+                        ...formData, 
+                        location_name: selected.name,
+                        latitude: String(selected.latitude),
+                        longitude: String(selected.longitude)
+                      });
+                    } else {
+                      setFormData({ ...formData, location_name: e.target.value });
                     }
-                    setFormData({ 
-                      ...formData, 
-                      location_name: selected,
-                      latitude: lat,
-                      longitude: lon
-                    });
                   }}
                   className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
                 >
                   <option value="">选择预设城市（可选）</option>
-                  <option value="浙江省湖州市德清县">📍 浙江省湖州市德清县</option>
-                  <option value="浙江省湖州市吴兴区">📍 浙江省湖州市吴兴区</option>
-                  <option value="浙江省杭州市吴兴区">📍 浙江省杭州市吴兴区</option>
-                  <option value="山西省太原市小店区">📍 山西省太原市小店区</option>
-                  <option value="山西省太原市杏花岭区">📍 山西省太原市杏花岭区</option>
-                  <option value="北京市">📍 北京市</option>
+                  {PRESET_LOCATIONS.map((loc) => (
+                    <option key={loc.name} value={loc.name}>
+                      📍 {loc.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -423,13 +427,14 @@ export const WeatherPushManager = () => {
                           onChange={(e) => {
                             const newTarget = e.target.value;
                             updateSubscription(sub.id, 'target', newTarget);
-                            // 自动更新对应的设备Key
-                            updateSubscription(sub.id, 'device_key', getDeviceKeyByTarget(newTarget));
+                            // 自动更新对应的设备Key，如果选择空值则清空
+                            updateSubscription(sub.id, 'device_key', newTarget ? getDeviceKeyByTarget(newTarget) : '');
                           }}
                           className="w-full px-2 py-1.5 text-sm border border-blue-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                         >
                           <option value="小菲">👸 小菲</option>
                           <option value="zxx">🤴 zxx</option>
+                          <option value="">👤 自定义（需手动填写设备Key）</option>
                         </select>
                       </div>
                       <div>
@@ -447,13 +452,20 @@ export const WeatherPushManager = () => {
                       <Input
                         type="text"
                         value={sub.device_key}
-                        readOnly
-                        placeholder="从环境变量自动获取"
-                        className="text-sm border-blue-200 bg-gray-50 cursor-not-allowed opacity-75"
+                        onChange={(e) => updateSubscription(sub.id, 'device_key', e.target.value)}
+                        readOnly={sub.target === '小菲' || sub.target === 'zxx'}
+                        placeholder={sub.target === '小菲' || sub.target === 'zxx' ? '从.env配置自动获取' : '请输入Bark设备Key'}
+                        className={`border-blue-200 ${sub.target === '小菲' || sub.target === 'zxx' ? 'bg-gray-50 cursor-not-allowed opacity-75' : 'bg-white'}`}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        💡 根据接收人自动从.env配置中读取
-                      </p>
+                      {sub.target === '小菲' || sub.target === 'zxx' ? (
+                        <p className="text-xs text-gray-500 mt-1">
+                          💡 已根据接收人自动从.env配置中读取设备Key
+                        </p>
+                      ) : (
+                        <p className="text-xs text-orange-500 mt-1">
+                          ⚠️ 自定义接收人需要手动填写设备Key
+                        </p>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="sm:col-span-3">
@@ -461,40 +473,23 @@ export const WeatherPushManager = () => {
                         <select
                           value={sub.location_name || ''}
                           onChange={(e) => {
-                            const selected = e.target.value;
-                            let lat = null, lon = null;
-                            if (selected === '浙江省湖州市德清县') {
-                              lat = 30.5333;
-                              lon = 120.0833;
-                            } else if (selected === '浙江省湖州市吴兴区') {
-                              lat = 30.8703;
-                              lon = 120.1094;
-                            } else if (selected === '浙江省杭州市吴兴区') {
-                              lat = 30.2741;
-                              lon = 120.1551;
-                            } else if (selected === '山西省太原市小店区') {
-                              lat = 37.8706;
-                              lon = 112.5617;
-                            } else if (selected === '山西省太原市杏花岭区') {
-                              lat = 37.8894;
-                              lon = 112.5644;
-                            } else if (selected === '北京市') {
-                              lat = 39.9042;
-                              lon = 116.4074;
+                            const selected = PRESET_LOCATIONS.find(loc => loc.name === e.target.value);
+                            if (selected) {
+                              updateSubscription(sub.id, 'location_name', selected.name);
+                              updateSubscription(sub.id, 'latitude', selected.latitude);
+                              updateSubscription(sub.id, 'longitude', selected.longitude);
+                            } else {
+                              updateSubscription(sub.id, 'location_name', e.target.value);
                             }
-                            updateSubscription(sub.id, 'location_name', selected);
-                            updateSubscription(sub.id, 'latitude', lat);
-                            updateSubscription(sub.id, 'longitude', lon);
                           }}
                           className="w-full px-2 py-1.5 text-sm border border-blue-200 rounded bg-white"
                         >
                           <option value="">选择预设城市（可选）</option>
-                          <option value="浙江省湖州市德清县">📍 浙江省湖州市德清县</option>
-                          <option value="浙江省湖州市吴兴区">📍 浙江省湖州市吴兴区</option>
-                          <option value="浙江省杭州市吴兴区">📍 浙江省杭州市吴兴区</option>
-                          <option value="山西省太原市小店区">📍 山西省太原市小店区</option>
-                          <option value="山西省太原市杏花岭区">📍 山西省太原市杏花岭区</option>
-                          <option value="北京市">📍 北京市</option>
+                          {PRESET_LOCATIONS.map((loc) => (
+                            <option key={loc.name} value={loc.name}>
+                              📍 {loc.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div>

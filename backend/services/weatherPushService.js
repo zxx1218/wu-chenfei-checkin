@@ -1,10 +1,52 @@
 const WeatherPushSubscription = require('../models/WeatherPushSubscription');
-const logger = require('../config/logger');
+const loggerHelper = require('../utils/loggerHelper');
 const https = require('https');
 
 // 和风天气API配置
 const WEATHER_API_KEY = process.env.VITE_WEATHER_API_KEY || '';
 const WEATHER_API_URL = 'https://devapi.qweather.com/v7/weather/now';
+
+// Bark设备Key配置（从环境变量读取，支持VITE_前缀）
+const BARK_DEVICE_KEYS = {
+  zxx: process.env.VITE_BARK_KEY_ZXX || process.env.BARK_KEY_ZXX || '',
+  xiaofei: process.env.VITE_BARK_KEY_XIAOFEI || process.env.BARK_KEY_XIAOFEI || ''
+};
+
+// 检查环境变量是否正确加载
+loggerHelper.logBusinessProcess(
+  'WeatherPushService',
+  '初始化Bark设备Key配置',
+  {
+    zxx_configured: !!BARK_DEVICE_KEYS.zxx,
+    xiaofei_configured: !!BARK_DEVICE_KEYS.xiaofei,
+    env_keys_present: {
+      VITE_BARK_KEY_ZXX: !!process.env.VITE_BARK_KEY_ZXX,
+      VITE_BARK_KEY_XIAOFEI: !!process.env.VITE_BARK_KEY_XIAOFEI
+    }
+  },
+  'info'
+);
+
+// 根据target获取对应的device_key
+function getDeviceKeyByTarget(target) {
+  if (target === 'zxx') {
+    const key = BARK_DEVICE_KEYS.zxx;
+    if (!key) {
+      logger.error('No device key found for target: zxx');
+      logger.debug('Available keys:', Object.keys(BARK_DEVICE_KEYS));
+    }
+    return key;
+  } else if (target === '小菲') {
+    const key = BARK_DEVICE_KEYS.xiaofei;
+    if (!key) {
+      logger.error('No device key found for target: 小菲');
+      logger.debug('Available keys:', Object.keys(BARK_DEVICE_KEYS));
+    }
+    return key;
+  }
+  logger.warn(`Unknown target: ${target}`);
+  return '';
+}
 
 class WeatherPushService {
   // 替换模板中的变量
@@ -66,13 +108,25 @@ class WeatherPushService {
 
   // 获取城市天气信息（使用经纬度）
   static async getWeather(latitude = 30.8703, longitude = 120.1094) {
+    const startTime = Date.now();
     try {
       if (!WEATHER_API_KEY) {
-        logger.warn('Weather API key not configured, using mock data');
+        loggerHelper.logBusinessProcess(
+          'WeatherAPI',
+          'API Key未配置，使用模拟数据',
+          { latitude, longitude },
+          'warn'
+        );
         return this.getMockWeather();
       }
 
       const url = `${WEATHER_API_URL}?location=${longitude},${latitude}&key=${WEATHER_API_KEY}`;
+      
+      loggerHelper.logBusinessProcess(
+        'WeatherAPI',
+        '请求天气数据',
+        { url: url.replace(WEATHER_API_KEY, '***') }
+      );
       
       return new Promise((resolve, reject) => {
         https.get(url, (res) => {
@@ -86,23 +140,36 @@ class WeatherPushService {
             try {
               const response = JSON.parse(data);
               if (response.code === '200' && response.now) {
+                loggerHelper.logPerformance(
+                  'WeatherAPI_GetWeather',
+                  Date.now() - startTime,
+                  { 
+                    statusCode: res.statusCode,
+                    location: `${latitude},${longitude}`,
+                    weatherText: response.now.text
+                  }
+                );
                 resolve(response.now);
               } else {
-                logger.error('Weather API error:', response);
+                loggerHelper.logError('和风天气API返回错误', new Error(`API Error: ${response.code}`), [
+                  '检查API Key是否正确',
+                  '验证经纬度坐标是否有效',
+                  '查看和风天气API文档'
+                ]);
                 resolve(this.getMockWeather());
               }
             } catch (error) {
-              logger.error('Parse weather data error:', error);
+              loggerHelper.logError('解析天气数据失败', error);
               resolve(this.getMockWeather());
             }
           });
         }).on('error', (error) => {
-          logger.error('Weather API request failed:', error);
+          loggerHelper.logError('天气API请求失败', error);
           resolve(this.getMockWeather());
         });
       });
     } catch (error) {
-      logger.error('Get weather error:', error);
+      loggerHelper.logError('获取天气数据异常', error);
       return this.getMockWeather();
     }
   }
@@ -120,22 +187,50 @@ class WeatherPushService {
 
   // 推送天气消息到Bark
   static async pushWeatherMessage(subscription) {
+    const startTime = Date.now();
     try {
-      const { target, device_key, message_template, location_name, latitude, longitude } = subscription;
+      const { target, message_template, location_name, latitude, longitude } = subscription;
+      
+      // 从环境变量动态获取设备key，而不是使用数据库中存储的值
+      const device_key = getDeviceKeyByTarget(target);
+      
+      if (!device_key) {
+        loggerHelper.logError(
+          `Bark推送失败 - 未找到目标用户 ${target} 的设备Key`,
+          new Error('Device key not found'),
+          ['检查.env文件中是否配置了对应的BARK_KEY']
+        );
+        return false;
+      }
       
       // 获取天气信息：优先使用订阅中的经纬度，否则使用默认值
       const lat = latitude || (target === '小菲' ? 30.5333 : 30.8703);
       const lon = longitude || (target === '小菲' ? 120.0833 : 120.1094);
       
-      logger.info(`Getting weather for ${location_name || 'default location'} (${lat}, ${lon})`);
+      loggerHelper.logBusinessProcess(
+        'WeatherPush',
+        `获取${location_name || '默认地区'}的天气数据`,
+        { target, latitude: lat, longitude: lon }
+      );
+      
       const weatherData = await this.getWeather(lat, lon);
       
       // 生成消息：优先使用自定义模板，否则使用默认模板
       let message;
       if (message_template && message_template.trim()) {
+        loggerHelper.logBusinessProcess(
+          'WeatherPush',
+          '使用自定义消息模板',
+          { target, hasTemplate: true }
+        );
         // 使用自定义模板，替换变量
         message = this.replaceTemplateVariables(message_template, weatherData, target, location_name);
       } else {
+        loggerHelper.logBusinessProcess(
+          'WeatherPush',
+          '使用默认可爱模板',
+          { target, hasTemplate: false }
+        );
         // 使用默认的可爱模板
         message = this.generateWeatherMessage(weatherData, target, location_name);
       }
@@ -158,6 +253,16 @@ class WeatherPushService {
         device_keys: [device_key]
       };
 
+      loggerHelper.logBusinessProcess(
+        'BarkPush',
+        `向${target}推送天气消息`,
+        { 
+          target,
+          title: title.substring(0, 50),
+          barkUrl: barkUrl
+        }
+      );
+
       return new Promise((resolve, reject) => {
         const postData = JSON.stringify(payload);
         
@@ -177,18 +282,32 @@ class WeatherPushService {
           });
           
           res.on('end', () => {
+            const duration = Date.now() - startTime;
+            
             if (res.statusCode === 200) {
-              logger.info(`Weather pushed to ${target} successfully`);
+              loggerHelper.logPerformance(
+                'BarkPush_Success',
+                duration,
+                { 
+                  target,
+                  statusCode: res.statusCode,
+                  responseSize: data.length
+                }
+              );
               resolve(true);
             } else {
-              logger.error(`Bark API error: ${res.statusCode}`, data);
+              loggerHelper.logError(
+                `Bark API返回错误状态码: ${res.statusCode}`,
+                new Error(data),
+                ['检查Bark服务是否正常', '验证device_key是否正确']
+              );
               resolve(false);
             }
           });
         });
 
         req.on('error', (error) => {
-          logger.error('Bark request error:', error);
+          loggerHelper.logError('Bark请求失败', error);
           resolve(false);
         });
 
@@ -196,30 +315,54 @@ class WeatherPushService {
         req.end();
       });
     } catch (error) {
-      logger.error('Push weather message error:', error);
+      loggerHelper.logError('推送天气消息异常', error);
       return false;
     }
   }
 
   // 执行定时推送任务
   static async executeDailyPush() {
+    const startTime = Date.now();
     try {
-      logger.info('=== Starting daily weather push ===');
+      loggerHelper.logScheduledTask(
+        'DailyWeatherPush',
+        {},
+        'start'
+      );
       
       // 获取所有启用的订阅
       const subscriptions = await WeatherPushSubscription.findEnabled();
       
       if (subscriptions.length === 0) {
-        logger.info('No enabled weather push subscriptions found');
+        loggerHelper.logBusinessProcess(
+          'DailyWeatherPush',
+          '未找到启用的天气推送订阅',
+          {},
+          'info'
+        );
         return { success: true, message: 'No subscriptions to push' };
       }
 
-      logger.info(`Found ${subscriptions.length} enabled subscription(s)`);
+      loggerHelper.logBusinessProcess(
+        'DailyWeatherPush',
+        `发现${subscriptions.length}个启用的订阅`,
+        { count: subscriptions.length }
+      );
       
       const results = [];
+      let successCount = 0;
+      let failCount = 0;
       
       for (const subscription of subscriptions) {
-        logger.info(`Pushing weather to ${subscription.target}...`);
+        loggerHelper.logBusinessProcess(
+          'DailyWeatherPush',
+          `向${subscription.target}推送天气`,
+          { 
+            target: subscription.target,
+            location: subscription.location_name 
+          }
+        );
+        
         const success = await this.pushWeatherMessage(subscription);
         
         results.push({
@@ -228,13 +371,35 @@ class WeatherPushService {
         });
         
         if (success) {
-          logger.info(`✓ Successfully pushed weather to ${subscription.target}`);
+          successCount++;
+          loggerHelper.logBusinessProcess(
+            'DailyWeatherPush',
+            `✓ 成功推送给${subscription.target}`,
+            { target: subscription.target }
+          );
         } else {
-          logger.error(`✗ Failed to push weather to ${subscription.target}`);
+          failCount++;
+          loggerHelper.logBusinessProcess(
+            'DailyWeatherPush',
+            `✗ 推送失败: ${subscription.target}`,
+            { target: subscription.target },
+            'warn'
+          );
         }
       }
 
-      logger.info('=== Daily weather push completed ===');
+      loggerHelper.logScheduledTask(
+        'DailyWeatherPush',
+        {
+          success: true,
+          totalSubscriptions: subscriptions.length,
+          successCount,
+          failCount,
+          results,
+          duration: Date.now() - startTime
+        },
+        'end'
+      );
       
       return {
         success: true,
@@ -242,7 +407,11 @@ class WeatherPushService {
         results: results
       };
     } catch (error) {
-      logger.error('Error in daily weather push:', error);
+      loggerHelper.logError('每日天气推送任务执行失败', error, [
+        '检查数据库连接是否正常',
+        '确认WeatherPushSubscription模型是否正确加载',
+        '验证Bark API配置'
+      ]);
       return {
         success: false,
         message: 'Daily weather push failed',

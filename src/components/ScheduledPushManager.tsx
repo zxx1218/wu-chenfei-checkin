@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { weatherPushApi } from '@/lib/api';
+import { weatherPushApi, getDeviceKeyByTarget } from '@/lib/api';
 import { Cloud, Clock, Send, Plus, Trash2, Edit, RefreshCw } from 'lucide-react';
 
 interface ScheduledSubscription {
@@ -27,13 +27,11 @@ interface ScheduledSubscription {
 // 常用城市预设
 const PRESET_LOCATIONS = [
   { name: '浙江省湖州市德清县', latitude: 30.5333, longitude: 120.0833 },
+  { name: '浙江省湖州市吴兴区', latitude: 30.8703, longitude: 120.1094 },
+  { name: '浙江省杭州市吴兴区', latitude: 30.2741, longitude: 120.1551 },
+  { name: '山西省太原市小店区', latitude: 37.8706, longitude: 112.5617 },
+  { name: '山西省太原市杏花岭区', latitude: 37.8894, longitude: 112.5644 },
   { name: '北京市', latitude: 39.9042, longitude: 116.4074 },
-  { name: '上海市', latitude: 31.2304, longitude: 121.4737 },
-  { name: '广州市', latitude: 23.1291, longitude: 113.2644 },
-  { name: '深圳市', latitude: 22.5431, longitude: 114.0579 },
-  { name: '杭州市', latitude: 30.2741, longitude: 120.1551 },
-  { name: '成都市', latitude: 30.5728, longitude: 104.0668 },
-  { name: '武汉市', latitude: 30.5928, longitude: 114.3055 },
 ];
 
 // 推送模块配置
@@ -62,10 +60,10 @@ export const ScheduledPushManager = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeModule, setActiveModule] = useState('weather');
   
-  // 表单数据
+  // 表单数据 - 从环境变量读取默认设备ID
   const [formData, setFormData] = useState({
     target: '小菲',
-    device_key: '7eBD3zF6E66Wqq7cCEjTBA',
+    device_key: getDeviceKeyByTarget('小菲'),
     push_time: '07:00',
     message_template: '',
     push_type: 'weather',
@@ -295,11 +293,17 @@ export const ScheduledPushManager = () => {
                     <Label className="text-xs text-gray-600 mb-1 block">接收人</Label>
                     <select
                       value={sub.target}
-                      onChange={(e) => updateSubscription(sub.id, 'target', e.target.value)}
+                      onChange={(e) => {
+                        const newTarget = e.target.value;
+                        updateSubscription(sub.id, 'target', newTarget);
+                        // 自动更新对应的设备Key，如果选择空值则清空
+                        updateSubscription(sub.id, 'device_key', newTarget ? getDeviceKeyByTarget(newTarget) : '');
+                      }}
                       className="w-full px-2 py-1.5 text-sm border border-blue-200 rounded bg-white"
                     >
                       <option value="小菲">👸 小菲</option>
                       <option value="zxx">🤴 zxx</option>
+                      <option value="">👤 自定义（需手动填写设备Key）</option>
                     </select>
                   </div>
                   <div>
@@ -318,8 +322,19 @@ export const ScheduledPushManager = () => {
                     type="text"
                     value={sub.device_key}
                     onChange={(e) => updateSubscription(sub.id, 'device_key', e.target.value)}
-                    className="w-full text-sm border-blue-200"
+                    readOnly={sub.target === '小菲' || sub.target === 'zxx'}
+                    placeholder={sub.target === '小菲' || sub.target === 'zxx' ? '从.env配置自动获取' : '请输入Bark设备Key'}
+                    className={`w-full text-sm border-blue-200 ${sub.target === '小菲' || sub.target === 'zxx' ? 'bg-gray-50 cursor-not-allowed opacity-75' : 'bg-white'}`}
                   />
+                  {sub.target === '小菲' || sub.target === 'zxx' ? (
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 已根据接收人自动从.env配置中读取设备Key
+                    </p>
+                  ) : (
+                    <p className="text-xs text-orange-500 mt-1">
+                      ⚠️ 自定义接收人需要手动填写设备Key
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs text-gray-600 mb-1 block">地区</Label>
@@ -488,11 +503,19 @@ export const ScheduledPushManager = () => {
                 <Label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 block">接收人</Label>
                 <select
                   value={formData.target}
-                  onChange={(e) => setFormData({ ...formData, target: e.target.value })}
+                  onChange={(e) => {
+                    const newTarget = e.target.value;
+                    setFormData({ 
+                      ...formData, 
+                      target: newTarget,
+                      device_key: newTarget ? getDeviceKeyByTarget(newTarget) : ''
+                    });
+                  }}
                   className="w-full px-3 py-2 text-sm border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
                 >
                   <option value="小菲">👸 小菲</option>
                   <option value="zxx">🤴 zxx</option>
+                  <option value="">👤 自定义（需手动填写设备Key）</option>
                 </select>
               </div>
               <div>
@@ -511,9 +534,19 @@ export const ScheduledPushManager = () => {
                 type="text"
                 value={formData.device_key}
                 onChange={(e) => setFormData({ ...formData, device_key: e.target.value })}
-                placeholder="输入Bark设备key"
-                className="w-full text-sm border-blue-200 focus:border-blue-400"
+                readOnly={formData.target === '小菲' || formData.target === 'zxx'}
+                placeholder={formData.target === '小菲' || formData.target === 'zxx' ? '从.env配置自动获取' : '请输入Bark设备Key'}
+                className={`w-full text-sm border-blue-200 ${formData.target === '小菲' || formData.target === 'zxx' ? 'bg-gray-50 cursor-not-allowed opacity-75' : 'bg-white'}`}
               />
+              {formData.target === '小菲' || formData.target === 'zxx' ? (
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 已根据接收人自动从.env配置中读取设备Key
+                </p>
+              ) : (
+                <p className="text-xs text-orange-500 mt-1">
+                  ⚠️ 自定义接收人需要手动填写设备Key
+                </p>
+              )}
             </div>
             <div>
               <Label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 block">地区</Label>
