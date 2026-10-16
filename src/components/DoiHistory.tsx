@@ -40,7 +40,7 @@ interface Props {
   records: DoiRecord[];
   onDelete: (id: string) => void;
   onSaveReview: (id: string, review: PartnerReview) => Promise<boolean>;
-  onEdit: (id: string, record: Partial<DoiRecord>) => Promise<boolean>; // 添加编辑回调函数
+  onEdit: (id: string, record: Partial<DoiRecord>, onProgress?: (progress: number) => void) => Promise<boolean>;
 }
 
 const DoiHistory = ({ records, onDelete, onSaveReview, onEdit }: Props) => {

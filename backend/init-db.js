@@ -113,8 +113,10 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
         device_key VARCHAR(255),
         sound VARCHAR(100),
         status ENUM('success', 'failed') DEFAULT 'success',
+        push_type VARCHAR(50) DEFAULT 'manual',
         reply_to_id CHAR(36) NULL DEFAULT NULL,
-        INDEX idx_reply_to_id (reply_to_id)
+        INDEX idx_reply_to_id (reply_to_id),
+        INDEX idx_push_type (push_type)
       );
     `;
 

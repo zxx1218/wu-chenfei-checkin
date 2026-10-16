@@ -12,7 +12,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -21,32 +20,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { MilkteaBrandSelect } from '@/components/MilkteaBrandSelect';
-import { Slider } from '@/components/ui/slider';
+import { ZhebeiRatingSelector, type ZhebeiRating } from '@/components/ZhebeiRatingSelector';
+import { useImageUpload } from '@/hooks/useImageUpload';
 import { bumpApi, milkteaApi } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { SeverityLevel } from '@/types/record';
 import { Wrench, User } from 'lucide-react';
-
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const nowTimeHM = () => new Date().toTimeString().slice(0, 5);
-
-/** Convert "YYYY-MM-DD" to "YYYY年M月D日"（与现有 zh-CN 记录保持一致） */
-const isoToZhDate = (iso: string) => {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
-
-/** "HH:MM" -> zh-CN 时间字符串（如 "上午10:30"） */
-const hmToZhTime = (hm: string) => {
-  const [h, m] = hm.split(':').map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-};
+import { todayISO, nowTimeHM, isoToZhDate, hmToZhTime } from '@/lib/dateUtils';
 
 const severityOptions: SeverityLevel[] = ['超痛', '很痛', '一般痛', '不怎么痛'];
 
@@ -66,12 +46,10 @@ const BackfillDialog = () => {
   const [mtType, setMtType] = useState<'milktea' | 'no_milktea'>('milktea');
   const [brand, setBrand] = useState('');
   const [drinkName, setDrinkName] = useState('');
-  const [drinker, setDrinker] = useState<'小菲' | 'zxx' | ''>(''); // 添加饮用者选择
-  const [zhebeiRating, setZhebeiRating] = useState<'夯爆了' | '中不溜' | '拉完了' | ''>(''); // 这杯奶茶评价
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false); // 图片上传中状态
-  const [fileInputKey, setFileInputKey] = useState(0); // 用于重置文件输入框
+  const [drinker, setDrinker] = useState<'小菲' | 'zxx' | ''>('');
+  const [zhebeiRating, setZhebeiRating] = useState<ZhebeiRating | ''>('');
+  const { selectedImage, previewImage, fileInputKey, handleImageSelect, clearImage, resetImage } = useImageUpload();
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const reset = () => {
     setDate(todayISO());
@@ -84,54 +62,13 @@ const BackfillDialog = () => {
     setDrinkName('');
     setDrinker('');
     setZhebeiRating('');
-    setSelectedImage(null);
-    setPreviewImage(null);
+    resetImage();
     setUploadingImage(false);
-    setFileInputKey(prev => prev + 1); // 重置文件输入框
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // 检查文件大小（限制为 5MB）
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ 
-        title: '图片太大', 
-        description: '请选择小于 5MB 的图片',
-        variant: 'destructive' 
-      });
-      return;
-    }
-
-    // 检查文件类型
-    if (!file.type.startsWith('image/')) {
-      toast({ 
-        title: '无效的文件类型', 
-        description: '请选择图片文件',
-        variant: 'destructive' 
-      });
-      return;
-    }
-
-    // 读取文件并转换为 base64
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setSelectedImage(base64String);
-      setPreviewImage(base64String);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const clearImage = () => {
-    setSelectedImage(null);
-    setPreviewImage(null);
   };
 
   const submitBump = async () => {
     if (bumpType === 'bump' && !location.trim()) {
-      toast({ title: '请填写碰到的位置', variant: 'destructive' });
+      toast('请填写碰到的位置', { icon: '⚠️' });
       return;
     }
     try {
@@ -142,17 +79,17 @@ const BackfillDialog = () => {
         location: bumpType === 'bump' ? location.trim() : null,
         severity: bumpType === 'bump' ? severity : null,
       });
-      toast({ title: '补录成功 🩹', description: '已添加到磕碰记录' });
+      toast('已添加到磕碰记录', { description: '补录成功 🩹' });
       reset();
       setOpen(false);
-    } catch (error: any) {
-      toast({ title: '补录失败', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : '未知错误';
+      toast('补录失败', { description: msg });
     }
   };
 
   const submitMilktea = async () => {
     try {
-      // 如果有图片，显示上传中状态
       if (selectedImage) {
         setUploadingImage(true);
       }
@@ -163,25 +100,24 @@ const BackfillDialog = () => {
         type: mtType,
         brand: mtType === 'milktea' ? brand.trim() || null : null,
         drink_name: mtType === 'milktea' ? drinkName.trim() || null : null,
-        drinker: drinker || null, // 添加饮用者字段
-        zhebei_rating: zhebeiRating || null, // 添加评价字段
-        image: selectedImage || null, // 添加图片字段
+        drinker: drinker || null,
+        zhebei_rating: zhebeiRating || null,
+        image: selectedImage || null,
       });
       
-      // 上传完成后隐藏加载状态
       if (selectedImage) {
         setUploadingImage(false);
       }
       
-      toast({ title: '补录成功 🧋', description: '已添加到奶茶记录' });
+      toast('已添加到奶茶记录', { description: '补录成功 🧋' });
       reset();
       setOpen(false);
-    } catch (error: any) {
-      // 出错时也要隐藏加载状态
+    } catch (error: unknown) {
       if (selectedImage) {
         setUploadingImage(false);
       }
-      toast({ title: '补录失败', description: error.message, variant: 'destructive' });
+      const msg = error instanceof Error ? error.message : '未知错误';
+      toast('补录失败', { description: msg });
     }
   };
 
@@ -337,44 +273,7 @@ const BackfillDialog = () => {
                 </div>
                 <div>
                   <Label>这杯奶茶评价（可选）</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant={zhebeiRating === '夯爆了' ? 'default' : 'outline'}
-                      onClick={() => setZhebeiRating(zhebeiRating === '夯爆了' ? '' : '夯爆了')}
-                      className={`flex-1 rounded-xl transition-all text-sm ${
-                        zhebeiRating === '夯爆了' 
-                          ? 'bg-green-500 hover:bg-green-600 border-green-500' 
-                          : 'border-green-500/30 text-green-600 hover:bg-green-500/10'
-                      }`}
-                    >
-                      🔥 夯爆了
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={zhebeiRating === '中不溜' ? 'default' : 'outline'}
-                      onClick={() => setZhebeiRating(zhebeiRating === '中不溜' ? '' : '中不溜')}
-                      className={`flex-1 rounded-xl transition-all text-sm ${
-                        zhebeiRating === '中不溜' 
-                          ? 'bg-yellow-500 hover:bg-yellow-600 border-yellow-500' 
-                          : 'border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10'
-                      }`}
-                    >
-                      😐 中不溜
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={zhebeiRating === '拉完了' ? 'default' : 'outline'}
-                      onClick={() => setZhebeiRating(zhebeiRating === '拉完了' ? '' : '拉完了')}
-                      className={`flex-1 rounded-xl transition-all text-sm ${
-                        zhebeiRating === '拉完了' 
-                          ? 'bg-red-500 hover:bg-red-600 border-red-500' 
-                          : 'border-red-500/30 text-red-600 hover:bg-red-500/10'
-                      }`}
-                    >
-                      💩 拉完了
-                    </Button>
-                  </div>
+                  <ZhebeiRatingSelector value={zhebeiRating} onChange={setZhebeiRating} size="sm" />
                 </div>
                 <div>
                   <Label>奶茶照片（可选）</Label>

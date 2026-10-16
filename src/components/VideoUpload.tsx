@@ -1,49 +1,51 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Upload, Video, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
 
 interface VideoUploadProps {
   onVideoSelect: (file: File | null) => void;
   currentVideoUrl?: string;
   onRemoveCurrentVideo?: () => void;
-  uploading?: boolean; // 添加上传状态属性
-  uploadProgress?: number; // 添加上传进度属性
+  uploading?: boolean;
+  uploadProgress?: number;
 }
 
-const VideoUpload: React.FC<VideoUploadProps> = ({ 
-  onVideoSelect, 
-  currentVideoUrl, 
+const VideoUpload = ({
+  onVideoSelect,
+  currentVideoUrl,
   onRemoveCurrentVideo,
   uploading = false,
-  uploadProgress = 0
-}) => {
+  uploadProgress = 0,
+}: VideoUploadProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-
     const file = files[0];
-    
-    // 验证文件类型
+
     if (!file.type.startsWith('video/')) {
-      alert('请选择视频文件！');
+      toast.error('请选择视频文件');
       return;
     }
 
-    // 验证文件大小（限制为100GB）
-    if (file.size > 100 * 1024 * 1024 * 1024) {
-      alert('视频文件不能超过100GB！');
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('视频文件不能超过5GB');
       return;
     }
 
-    // 创建预览URL
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    
-    // 传递给父组件
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(URL.createObjectURL(file));
     onVideoSelect(file);
   };
 
@@ -64,23 +66,19 @@ const VideoUpload: React.FC<VideoUploadProps> = ({
     handleFiles(e.dataTransfer.files);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFiles(e.target.files);
-  };
-
   const removeVideo = () => {
-    setPreviewUrl(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
     }
+    if (fileInputRef.current) fileInputRef.current.value = '';
     onVideoSelect(null);
+    onRemoveCurrentVideo?.();
   };
 
-  const triggerFileSelect = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
+  const triggerFileSelect = () => fileInputRef.current?.click();
+
+  const displayUrl = previewUrl || currentVideoUrl;
 
   return (
     <div className="space-y-3">
@@ -98,11 +96,11 @@ const VideoUpload: React.FC<VideoUploadProps> = ({
         <input
           type="file"
           ref={fileInputRef}
-          onChange={handleChange}
+          onChange={(e) => handleFiles(e.target.files)}
           accept="video/*"
           className="hidden"
         />
-        
+
         <div className="flex flex-col items-center justify-center gap-3">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
             {uploading ? (
@@ -111,7 +109,7 @@ const VideoUpload: React.FC<VideoUploadProps> = ({
               <Video className="w-6 h-6 text-primary" />
             )}
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">
               {uploading ? (
@@ -131,22 +129,21 @@ const VideoUpload: React.FC<VideoUploadProps> = ({
               )}
             </p>
             <p className="text-xs text-muted-foreground">
-              {uploading 
-                ? `上传进度: ${uploadProgress}%` 
-                : '支持MP4、MOV、AVI等视频格式，最大100GB'}
+              {uploading
+                ? `上传进度: ${uploadProgress}%`
+                : '支持MP4、MOV、AVI等格式，最大5GB'}
             </p>
-            
-            {/* 上传进度条 */}
+
             {uploading && (
               <div className="w-full bg-primary/20 rounded-full h-1.5 mt-2">
-                <div 
-                  className="bg-primary h-1.5 rounded-full transition-all duration-300 ease-out" 
+                <div
+                  className="bg-primary h-1.5 rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${uploadProgress}%` }}
-                ></div>
+                />
               </div>
             )}
           </div>
-          
+
           <Button
             type="button"
             onClick={triggerFileSelect}
@@ -161,16 +158,15 @@ const VideoUpload: React.FC<VideoUploadProps> = ({
         </div>
       </div>
 
-      {(previewUrl || currentVideoUrl) && !uploading && (
+      {displayUrl && !uploading && (
         <div className="space-y-3">
           <div className="relative rounded-2xl overflow-hidden bg-gray-900 aspect-video flex items-center justify-center">
             <video
-              src={previewUrl || currentVideoUrl}
+              src={displayUrl}
               controls
               className="w-full h-full object-contain"
             />
           </div>
-          
           <Button
             type="button"
             onClick={removeVideo}

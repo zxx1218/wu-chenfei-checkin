@@ -24,6 +24,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// 根据日期获取记录（必须在 /:id 之前，否则 "date" 会被当作 id 匹配）
+router.get('/date/:date', async (req, res) => {
+  const startTime = Date.now();
+  try {
+    const records = await BumpRecord.findByDate(req.params.date);
+    
+    loggerHelper.logDatabaseOperation(
+      'FIND',
+      'bump_records',
+      { date: req.params.date },
+      { success: true, count: records.length },
+      startTime
+    );
+    
+    res.json({ data: records });
+  } catch (error) {
+    loggerHelper.logError(`根据日期 ${req.params.date} 获取碰记录失败`, error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 根据ID获取单个记录
 router.get('/:id', async (req, res) => {
   const startTime = Date.now();
@@ -158,27 +179,6 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Record deleted successfully' });
   } catch (error) {
     loggerHelper.logError(`删除碰记录 ${req.params.id} 失败`, error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 根据日期获取记录
-router.get('/date/:date', async (req, res) => {
-  const startTime = Date.now();
-  try {
-    const records = await BumpRecord.findByDate(req.params.date);
-    
-    loggerHelper.logDatabaseOperation(
-      'FIND',
-      'bump_records',
-      { date: req.params.date },
-      { success: true, count: records.length },
-      startTime
-    );
-    
-    res.json({ data: records });
-  } catch (error) {
-    loggerHelper.logError(`根据日期 ${req.params.date} 获取碰记录失败`, error);
     res.status(500).json({ error: error.message });
   }
 });

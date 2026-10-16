@@ -28,66 +28,40 @@ export const bumpApi = {
   getByDate: (date: string) => axios.get(`${API_BASE_URL}/bump-records/date/${date}`).then(res => res.data),
 };
 
+function buildDoiFormData(data: any) {
+  const formData = new FormData();
+  Object.keys(data).forEach((key) => {
+    if (data[key] !== null && data[key] !== undefined && key !== 'videoFile') {
+      formData.append(key, data[key]);
+    }
+  });
+  if (data.videoFile) {
+    formData.append('video', data.videoFile, data.videoFile.name);
+  }
+  return formData;
+}
+
+function progressHandler(onUploadProgress?: (progress: number) => void) {
+  if (!onUploadProgress) return undefined;
+  return (progressEvent: { loaded: number; total?: number }) => {
+    onUploadProgress(Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1)));
+  };
+}
+
 // DOI Records API
 export const doiApi = {
   getAll: () => axios.get(`${API_BASE_URL}/doi-records`).then(res => res.data),
   getById: (id: string) => axios.get(`${API_BASE_URL}/doi-records/${id}`).then(res => res.data),
-  create: (data: any, onUploadProgress?: (progress: number) => void) => {
-    // 检查是否有视频文件需要上传
-    const formData = new FormData();
-
-    // 添加普通字段
-    Object.keys(data).forEach((key) => {
-      if (data[key] !== null && data[key] !== undefined) {
-        // 如果是视频文件对象，跳过，稍后单独处理
-        if (key === 'videoFile') return;
-        formData.append(key, data[key]);
-      }
-    });
-
-    // 如果有视频文件，添加到formData
-    if (data.videoFile) {
-      formData.append('video', data.videoFile, data.videoFile.name);
-    }
-
-    return axios.post(`${API_BASE_URL}/doi-records`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress: onUploadProgress ? (progressEvent) => {
-        const progress = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-        onUploadProgress(progress);
-      } : undefined
-    }).then(res => res.data);
-  },
-  update: (id: string, data: any, onUploadProgress?: (progress: number) => void) => {
-    // 检查是否有视频文件需要上传
-    const formData = new FormData();
-
-    // 添加普通字段
-    Object.keys(data).forEach((key) => {
-      if (data[key] !== null && data[key] !== undefined) {
-        // 如果是视频文件对象，跳过，稍后单独处理
-        if (key === 'videoFile') return;
-        formData.append(key, data[key]);
-      }
-    });
-
-    // 如果有视频文件，添加到formData
-    if (data.videoFile) {
-      formData.append('video', data.videoFile, data.videoFile.name);
-    }
-
-    return axios.put(`${API_BASE_URL}/doi-records/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress: onUploadProgress ? (progressEvent) => {
-        const progress = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-        onUploadProgress(progress);
-      } : undefined
-    }).then(res => res.data);
-  },
+  create: (data: any, onUploadProgress?: (progress: number) => void) =>
+    axios.post(`${API_BASE_URL}/doi-records`, buildDoiFormData(data), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: progressHandler(onUploadProgress),
+    }).then(res => res.data),
+  update: (id: string, data: any, onUploadProgress?: (progress: number) => void) =>
+    axios.put(`${API_BASE_URL}/doi-records/${id}`, buildDoiFormData(data), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: progressHandler(onUploadProgress),
+    }).then(res => res.data),
   delete: (id: string) => axios.delete(`${API_BASE_URL}/doi-records/${id}`).then(res => res.data),
   getByDate: (date: string) => axios.get(`${API_BASE_URL}/doi-records/date/${date}`).then(res => res.data),
 };
@@ -120,6 +94,8 @@ export const pushHistoryApi = {
   create: (data: any) => axios.post(`${API_BASE_URL}/push-history`, data).then(res => res.data),
   delete: (id: string) => axios.delete(`${API_BASE_URL}/push-history/${id}`).then(res => res.data),
   getByDate: (date: string) => axios.get(`${API_BASE_URL}/push-history/date/${date}`).then(res => res.data),
+  getByType: (pushType: string, limit?: number) =>
+    axios.get(`${API_BASE_URL}/push-history?push_type=${pushType}&limit=${limit || 100}`).then(res => res.data),
 };
 
 // Weather Push Subscription API
@@ -131,4 +107,7 @@ export const weatherPushApi = {
   update: (id: string, data: any) => axios.put(`${API_BASE_URL}/weather-push-subscription/${id}`, data).then(res => res.data),
   delete: (id: string) => axios.delete(`${API_BASE_URL}/weather-push-subscription/${id}`).then(res => res.data),
   trigger: (target?: string) => axios.post(`${API_BASE_URL}/weather-push-subscription/trigger`, { target }).then(res => res.data),
+  preview: (template: string, target?: string, location_name?: string) =>
+    axios.post(`${API_BASE_URL}/weather-push-subscription/preview`, { template, target, location_name }).then(res => res.data),
+  getPresets: () => axios.get(`${API_BASE_URL}/weather-push-subscription/presets`).then(res => res.data),
 };

@@ -3,16 +3,22 @@ const router = express.Router();
 const PushHistory = require('../models/PushHistory');
 const loggerHelper = require('../utils/loggerHelper');
 
-// 获取所有历史记录
+// 获取所有历史记录（支持 push_type 过滤）
 router.get('/', async (req, res) => {
   const startTime = Date.now();
   try {
-    const records = await PushHistory.findAll();
+    const { push_type, limit } = req.query;
+    let records;
+    if (push_type) {
+      records = await PushHistory.findByType(push_type, parseInt(limit) || 100);
+    } else {
+      records = await PushHistory.findAll();
+    }
     
     loggerHelper.logDatabaseOperation(
       'READ',
       'push_history',
-      { query: 'findAll' },
+      { query: push_type ? 'findByType' : 'findAll', push_type },
       { success: true, count: records.length },
       startTime
     );
@@ -42,6 +48,27 @@ router.get('/recent', async (req, res) => {
     res.json({ data: records });
   } catch (error) {
     loggerHelper.logError('获取最近推送历史失败', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 根据日期获取记录（必须在 /:id 之前，否则 "date" 会被当作 id 匹配）
+router.get('/date/:date', async (req, res) => {
+  const startTime = Date.now();
+  try {
+    const records = await PushHistory.findByDate(req.params.date);
+    
+    loggerHelper.logDatabaseOperation(
+      'FIND',
+      'push_history',
+      { date: req.params.date },
+      { success: true, count: records.length },
+      startTime
+    );
+    
+    res.json({ data: records });
+  } catch (error) {
+    loggerHelper.logError(`根据日期 ${req.params.date} 获取推送历史失败`, error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -141,27 +168,6 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Record deleted successfully' });
   } catch (error) {
     loggerHelper.logError(`删除推送历史 ${req.params.id} 失败`, error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 根据日期获取记录
-router.get('/date/:date', async (req, res) => {
-  const startTime = Date.now();
-  try {
-    const records = await PushHistory.findByDate(req.params.date);
-    
-    loggerHelper.logDatabaseOperation(
-      'FIND',
-      'push_history',
-      { date: req.params.date },
-      { success: true, count: records.length },
-      startTime
-    );
-    
-    res.json({ data: records });
-  } catch (error) {
-    loggerHelper.logError(`根据日期 ${req.params.date} 获取推送历史失败`, error);
     res.status(500).json({ error: error.message });
   }
 });

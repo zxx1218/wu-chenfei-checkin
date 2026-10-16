@@ -1,53 +1,50 @@
 import { useState, useMemo } from 'react';
 import { useMilkteaRecords } from '@/hooks/useMilkteaRecords';
-import { CalendarDays, Coffee, SmilePlus, Trash2, ArrowLeft, Camera, Image as ImageIcon, Users, User, Edit2, Search } from 'lucide-react';
+import { useImageUpload } from '@/hooks/useImageUpload';
+import { CalendarDays, Coffee, SmilePlus, Trash2, ArrowLeft, ImageIcon, Users, User, Edit2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { Confetti } from '@/components/Confetti';
-import { NavLink } from '@/components/NavLink';
+import { toast } from 'sonner';
 import { MilkteaBrandSelect } from '@/components/MilkteaBrandSelect';
 import { MilkteaBrandChart } from '@/components/MilkteaBrandChart';
 import { MilkteaHealthChart } from '@/components/MilkteaHealthChart';
 import { MilkteaBudget } from '@/components/MilkteaBudget';
 import { MilkteaComparison } from '@/components/MilkteaComparison';
 import { ZhebeiRatingStats } from '@/components/ZhebeiRatingStats';
+import { ZhebeiRatingSelector, type ZhebeiRating } from '@/components/ZhebeiRatingSelector';
+import { PersonTab } from '@/components/PersonTab';
 import { ImageDialog } from '@/components/ImageDialog';
 import { EditMilkteaDialog } from '@/components/EditMilkteaDialog';
 import { MilkteaFilter, type MilkteaFilters } from '@/components/MilkteaFilter';
 import { MilkteaCalendar } from '@/components/MilkteaCalendar';
 import { Link } from 'react-router-dom';
 import { milkteaApi } from '@/lib/api';
+import { getTodayDateString } from '@/lib/dateUtils';
 import type { MilkteaRecord } from '@/hooks/useMilkteaRecords';
 
 const MilkteaTracker = () => {
   const { records, loading, addMilkteaRecord, addNoMilkteaRecord, deleteRecord, hasNoMilkteaToday, todayMilkteaCount, hasPersonNoMilkteaToday, getPersonMilkteaCountToday } = useMilkteaRecords();
-  const { toast } = useToast();
+  const { selectedImage, previewImage, fileInputKey, handleImageSelect, clearImage, resetImage } = useImageUpload();
   const [brand, setBrand] = useState('');
   const [drinkName, setDrinkName] = useState('');
   const [drinker, setDrinker] = useState<'小菲' | 'zxx' | ''>('');
-  const [zhebeiRating, setZhebeiRating] = useState<'夯爆了' | '中不溜' | '拉完了' | ''>('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [showConfetti, setShowConfetti] = useState(false);
+  const [zhebeiRating, setZhebeiRating] = useState<ZhebeiRating | ''>('');
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [viewingImage, setViewingImage] = useState<string>('');
-  const [loadingImage, setLoadingImage] = useState<string | null>(null); // 正在加载的图片ID
-  const [uploadingImage, setUploadingImage] = useState(false); // 图片上传中状态
-  const [submitting, setSubmitting] = useState(false); // 提交中状态
-  const [fileInputKey, setFileInputKey] = useState(0); // 用于重置文件输入框
+  const [loadingImage, setLoadingImage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('overall');
   
-  // 新增：编辑功能状态
+  // 编辑功能状态
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MilkteaRecord | null>(null);
   
-  // 新增：搜索筛选状态
+  // 搜索筛选状态
   const [filters, setFilters] = useState<MilkteaFilters>({});
   const [showFilters, setShowFilters] = useState(false);
   
-  // 新增：日历视图状态
+  // 日历视图状态
   const [showCalendar, setShowCalendar] = useState(false);
 
   const today = new Date().toLocaleDateString('zh-CN', {
@@ -58,90 +55,59 @@ const MilkteaTracker = () => {
   });
 
   const handleAddMilktea = async () => {
-    // 如果选择了drinker，只检查该人是否已打卡"今日很乖"
     if (drinker && hasPersonNoMilkteaToday(drinker)) {
-      toast({ 
-        title: `${drinker}今天已经打卡"今日很乖"啦！`, 
-        description: '不能再记录喝奶茶了哦~', 
-        variant: 'destructive' 
-      });
+      toast(`${drinker}今天已经打卡"今日很乖"啦！`, { description: '不能再记录喝奶茶了哦~' });
       return;
     }
-    // 如果没有选择drinker，检查整体是否有"今日很乖"记录
     if (!drinker && hasNoMilkteaToday) {
-      toast({ 
-        title: '今天已经有人打卡"今日很乖"啦！', 
-        description: '请先选择"谁喝的"，或确认今天没人打卡"今日很乖"', 
-        variant: 'destructive' 
-      });
+      toast('今天已经有人打卡"今日很乖"啦！', { description: '请先选择"谁喝的"，或确认今天没人打卡"今日很乖"' });
       return;
     }
     
-    // 设置提交中状态
     setSubmitting(true);
     
     const success = await addMilkteaRecord(brand, drinkName, selectedImage || undefined, drinker || undefined, zhebeiRating || undefined);
     
-    // 提交完成后隐藏加载状态
     setSubmitting(false);
     
     if (success) {
-      toast({ title: '🧋 奶茶记录成功！', description: `${drinker ? drinker + ' - ' : ''}${brand ? brand + ' - ' : ''}${drinkName || '一杯奶茶'}${selectedImage ? ' 📷' : ''}${zhebeiRating ? ' ⭐' : ''}` });
+      toast(`${drinker ? drinker + ' - ' : ''}${brand ? brand + ' - ' : ''}${drinkName || '一杯奶茶'}${selectedImage ? ' 📷' : ''}${zhebeiRating ? ' ⭐' : ''}`, { description: '🧋 奶茶记录成功！' });
       setBrand('');
       setDrinkName('');
       setDrinker('');
       setZhebeiRating('');
-      setSelectedImage(null);
-      setPreviewImage(null);
-      setFileInputKey(prev => prev + 1); // 重置文件输入框
+      resetImage();
     }
   };
 
   const handleNoMilktea = async () => {
-    // 如果选择了drinker，检查该人今天是否已喝奶茶
     if (drinker) {
       const personCount = getPersonMilkteaCountToday(drinker);
       if (personCount > 0) {
-        toast({ 
-          title: `${drinker}今天已经喝过奶茶了`, 
-          description: '不能再打卡"今日很乖"啦~', 
-          variant: 'destructive' 
-        });
+        toast(`${drinker}今天已经喝过奶茶了`, { description: '不能再打卡"今日很乖"啦~' });
         return;
       }
     } else {
-      // 如果没有选择drinker，检查整体是否有喝奶茶记录
       if (todayMilkteaCount > 0) {
-        toast({ 
-          title: '今天已经有人喝过奶茶了', 
-          description: '请先选择"谁喝的"，或确认今天没人喝奶茶', 
-          variant: 'destructive' 
-        });
+        toast('今天已经有人喝过奶茶了', { description: '请先选择"谁喝的"，或确认今天没人喝奶茶' });
         return;
       }
     }
 
     const result = await addNoMilkteaRecord(drinker || undefined);
     if (result.alreadyCheckedIn) {
-      toast({ 
-        title: '已经打过卡啦', 
-        description: drinker ? `${drinker}今天已经记录"今日很乖"了~` : '今天已经有人记录"今日很乖"了~' 
-      });
+      toast(drinker ? `${drinker}今天已经记录"今日很乖"了~` : '今天已经有人记录"今日很乖"了~', { description: '已经打过卡啦' });
       return;
     }
     if (result.success) {
-      setShowConfetti(true);
-      toast({ 
-        title: '🌟 今日很乖！', 
-        description: drinker ? `${drinker}今天没有喝奶茶，真棒！` : '今天没有喝奶茶，真棒！' 
-      });
+      toast(drinker ? `${drinker}今天没有喝奶茶，真棒！` : '今天没有喝奶茶，真棒！', { description: '🌟 今日很乖！' });
     }
   };
 
   const handleDelete = async (id: string) => {
     const success = await deleteRecord(id);
     if (success) {
-      toast({ title: '记录已删除' });
+      toast('记录已删除');
     }
   };
 
@@ -202,50 +168,7 @@ const MilkteaTracker = () => {
 
   // 日历视图点击处理
   const handleCalendarDateClick = (date: string) => {
-    // 可以跳转到该日期的记录或显示该日期的详情
-    toast({
-      title: `📅 ${date}`,
-      description: '查看该日期的奶茶记录',
-    });
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // 检查文件大小（限制为 5MB）
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ 
-        title: '图片太大', 
-        description: '请选择小于 5MB 的图片',
-        variant: 'destructive' 
-      });
-      return;
-    }
-
-    // 检查文件类型
-    if (!file.type.startsWith('image/')) {
-      toast({ 
-        title: '无效的文件类型', 
-        description: '请选择图片文件',
-        variant: 'destructive' 
-      });
-      return;
-    }
-
-    // 读取文件并转换为 base64
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setSelectedImage(base64String);
-      setPreviewImage(base64String);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const clearImage = () => {
-    setSelectedImage(null);
-    setPreviewImage(null);
+    toast(`📅 ${date}`, { description: '查看该日期的奶茶记录' });
   };
 
   // 优化：按需加载图片，点击查看时才从服务器获取
@@ -258,19 +181,11 @@ const MilkteaTracker = () => {
         setViewingImage(response.data.image);
         setImageDialogOpen(true);
       } else {
-        toast({
-          title: '图片不存在',
-          description: '该记录没有图片',
-          variant: 'destructive'
-        });
+        toast.error('图片不存在', { description: '该记录没有图片' });
       }
     } catch (error) {
       console.error('Failed to load image:', error);
-      toast({
-        title: '加载失败',
-        description: '无法加载图片，请稍后重试',
-        variant: 'destructive'
-      });
+      toast.error('加载失败', { description: '无法加载图片，请稍后重试' });
     } finally {
       setLoadingImage(null);
     }
@@ -288,7 +203,6 @@ const MilkteaTracker = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {showConfetti && <Confetti active={showConfetti} type="safe" />}
       <div className="container max-w-lg mx-auto px-4 py-8">
         {/* Header */}
         <header className="text-center mb-10">
@@ -354,44 +268,7 @@ const MilkteaTracker = () => {
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-1.5 block">这杯奶茶评价（可选）</label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={zhebeiRating === '夯爆了' ? 'default' : 'outline'}
-                    onClick={() => setZhebeiRating(zhebeiRating === '夯爆了' ? '' : '夯爆了')}
-                    className={`flex-1 rounded-xl transition-all ${
-                      zhebeiRating === '夯爆了' 
-                        ? 'bg-green-500 hover:bg-green-600 border-green-500' 
-                        : 'border-green-500/30 text-green-600 hover:bg-green-500/10'
-                    }`}
-                  >
-                    🔥 夯爆了
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={zhebeiRating === '中不溜' ? 'default' : 'outline'}
-                    onClick={() => setZhebeiRating(zhebeiRating === '中不溜' ? '' : '中不溜')}
-                    className={`flex-1 rounded-xl transition-all ${
-                      zhebeiRating === '中不溜' 
-                        ? 'bg-yellow-500 hover:bg-yellow-600 border-yellow-500' 
-                        : 'border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10'
-                    }`}
-                  >
-                    😐 中不溜
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={zhebeiRating === '拉完了' ? 'default' : 'outline'}
-                    onClick={() => setZhebeiRating(zhebeiRating === '拉完了' ? '' : '拉完了')}
-                    className={`flex-1 rounded-xl transition-all ${
-                      zhebeiRating === '拉完了' 
-                        ? 'bg-red-500 hover:bg-red-600 border-red-500' 
-                        : 'border-red-500/30 text-red-600 hover:bg-red-500/10'
-                    }`}
-                  >
-                    💩 拉完了
-                  </Button>
-                </div>
+                <ZhebeiRatingSelector value={zhebeiRating} onChange={setZhebeiRating} />
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-1.5 block">奶茶照片（可选）</label>
@@ -610,64 +487,22 @@ const MilkteaTracker = () => {
 
           {/* Xiaofei Tab */}
           <TabsContent value="xiaofei" className="space-y-6 mt-6">
-            <section className="bg-card rounded-3xl p-6 shadow-sm border border-pink-500/30">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-pink-600">
-                <span>👤</span>
-                <span>小菲的统计</span>
-              </h2>
-              <div className="bg-pink-500/10 rounded-2xl p-4 text-center mb-4 border border-pink-500/20">
-                <p className="text-3xl font-bold text-pink-600">{xiaofeiMilktea}</p>
-                <p className="text-sm text-muted-foreground mt-1">总杯数</p>
-              </div>
-              <MilkteaBrandChart records={xiaofeiRecords} />
-            </section>
-
-            <section className="bg-card rounded-3xl p-6 shadow-sm border border-pink-500/30">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-pink-600">
-                <span>💚</span>
-                <span>健康分析</span>
-              </h2>
-              <MilkteaHealthChart records={records} drinker="小菲" />
-            </section>
-
-            <section className="bg-card rounded-3xl p-6 shadow-sm border border-pink-500/30">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-pink-600">
-                <span>⭐</span>
-                <span>这杯奶茶评价</span>
-              </h2>
-              <ZhebeiRatingStats records={records} drinker="小菲" />
-            </section>
+            <PersonTab
+              drinker="小菲"
+              records={records}
+              personRecords={xiaofeiRecords}
+              milkteaCount={xiaofeiMilktea}
+            />
           </TabsContent>
 
           {/* ZXX Tab */}
           <TabsContent value="zxx" className="space-y-6 mt-6">
-            <section className="bg-card rounded-3xl p-6 shadow-sm border border-blue-500/30">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-blue-600">
-                <span>👤</span>
-                <span>zxx的统计</span>
-              </h2>
-              <div className="bg-blue-500/10 rounded-2xl p-4 text-center mb-4 border border-blue-500/20">
-                <p className="text-3xl font-bold text-blue-600">{zxxMilktea}</p>
-                <p className="text-sm text-muted-foreground mt-1">总杯数</p>
-              </div>
-              <MilkteaBrandChart records={zxxRecords} />
-            </section>
-
-            <section className="bg-card rounded-3xl p-6 shadow-sm border border-blue-500/30">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-blue-600">
-                <span>💚</span>
-                <span>健康分析</span>
-              </h2>
-              <MilkteaHealthChart records={records} drinker="zxx" />
-            </section>
-
-            <section className="bg-card rounded-3xl p-6 shadow-sm border border-blue-500/30">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-blue-600">
-                <span>⭐</span>
-                <span>这杯奶茶评价</span>
-              </h2>
-              <ZhebeiRatingStats records={records} drinker="zxx" />
-            </section>
+            <PersonTab
+              drinker="zxx"
+              records={records}
+              personRecords={zxxRecords}
+              milkteaCount={zxxMilktea}
+            />
           </TabsContent>
         </Tabs>
 

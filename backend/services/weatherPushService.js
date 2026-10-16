@@ -1,4 +1,5 @@
 const WeatherPushSubscription = require('../models/WeatherPushSubscription');
+const PushHistory = require('../models/PushHistory');
 const loggerHelper = require('../utils/loggerHelper');
 const https = require('https');
 
@@ -32,31 +33,95 @@ function getDeviceKeyByTarget(target) {
   if (target === 'zxx') {
     const key = BARK_DEVICE_KEYS.zxx;
     if (!key) {
-      logger.error('No device key found for target: zxx');
-      logger.debug('Available keys:', Object.keys(BARK_DEVICE_KEYS));
+      loggerHelper.logBusinessProcess(
+        'WeatherPushService',
+        '未找到zxx的设备Key',
+        { availableKeys: Object.keys(BARK_DEVICE_KEYS) },
+        'warn'
+      );
     }
     return key;
   } else if (target === '小菲') {
     const key = BARK_DEVICE_KEYS.xiaofei;
     if (!key) {
-      logger.error('No device key found for target: 小菲');
-      logger.debug('Available keys:', Object.keys(BARK_DEVICE_KEYS));
+      loggerHelper.logBusinessProcess(
+        'WeatherPushService',
+        '未找到小菲的设备Key',
+        { availableKeys: Object.keys(BARK_DEVICE_KEYS) },
+        'warn'
+      );
     }
     return key;
   }
-  logger.warn(`Unknown target: ${target}`);
+  loggerHelper.logBusinessProcess(
+    'WeatherPushService',
+    `未知的推送目标: ${target}`,
+    {},
+    'warn'
+  );
   return '';
 }
 
 class WeatherPushService {
+  // 模板变量定义（供前后端共享）
+  static TEMPLATE_VARIABLES = [
+    { key: '{target}', label: '称呼', desc: '接收人的昵称', example: '我的小公主' },
+    { key: '{temp}', label: '温度', desc: '当前温度（摄氏度）', example: '22' },
+    { key: '{text}', label: '天气', desc: '天气状况文字', example: '晴' },
+    { key: '{windDir}', label: '风向', desc: '风的方向', example: '东南风' },
+    { key: '{windScale}', label: '风力', desc: '风力等级', example: '2' },
+    { key: '{humidity}', label: '湿度', desc: '空气湿度（百分比）', example: '45' },
+    { key: '{location}', label: '地区', desc: '推送的地区名称', example: '浙江省湖州市德清县' },
+  ];
+
+  // 预置模板
+  static PRESET_TEMPLATES = [
+    {
+      id: 'cute_sunny',
+      name: '☀️ 甜美晴天版',
+      template: '☀️ 早安呀{target}！今天{location}阳光超级好哦~\n🌡️ 当前温度：{temp}°C\n😊 天气：{text}\n💨 风力：{windDir}{windScale}级\n💧 湿度：{humidity}%\n✨ 记得涂防晒，戴墨镜哦！爱你哟~ 💕',
+    },
+    {
+      id: 'cute_rainy',
+      name: '🌧️ 温柔雨天版',
+      template: '🌧️ {target}，今天{location}下雨了呢！\n🌡️ 当前温度：{temp}°C\n☔ 天气：{text}\n💨 风力：{windDir}{windScale}级\n💧 湿度：{humidity}%\n☂️ 一定要带伞哦！别淋湿了，我会心疼的~ 💕',
+    },
+    {
+      id: 'simple',
+      name: '📋 简洁实用版',
+      template: '📍 {location} 天气播报\n🌡️ 温度：{temp}°C | {text}\n💨 {windDir}{windScale}级 | 💧 湿度{humidity}%\n💡 出门注意天气变化哦~',
+    },
+    {
+      id: 'romantic',
+      name: '💕 浪漫关怀版',
+      template: '💌 亲爱的{target}，新的一天~\n📍 {location} | 🌡️ {temp}°C | {text}\n🍃 {windDir}{windScale}级 | 💦 湿度{humidity}%\n🌸 不管天气怎样，有你的每天都是好天气 💖',
+    },
+  ];
+
+  // 模拟天气数据（用于预览）
+  static MOCK_WEATHER = {
+    temp: '22', text: '晴', windDir: '东南风', windScale: '2', humidity: '45'
+  };
+
+  // 获取默认模板（供前端展示）
+  static getDefaultTemplates() {
+    const mockTarget = '小菲';
+    const mockLocation = '浙江省湖州市德清县';
+    const mockWeather = this.MOCK_WEATHER;
+    const nickname = '我的小公主';
+
+    return {
+      sunny: `☀️ 早安呀${nickname}！今天${mockLocation}阳光超级好哦~\n🌡️ 当前温度：${mockWeather.temp}°C\n😊 天气：${mockWeather.text}\n💨 风力：${mockWeather.windDir}${mockWeather.windScale}级\n💧 湿度：${mockWeather.humidity}%\n✨ 记得涂防晒，戴墨镜哦！爱你哟~ 💕`,
+      cloudy: `☁️ 宝贝，今天${mockLocation}是阴天呢，不过也很舒适哦~\n🌡️ 当前温度：${mockWeather.temp}°C\n🌤️ 天气：${mockWeather.text}\n💨 风力：${mockWeather.windDir}${mockWeather.windScale}级\n💧 湿度：${mockWeather.humidity}%\n🎀 这样的天气最适合散步啦，要不要一起走走？💖`,
+      rainy: `🌧️ 小可爱，今天${mockLocation}下雨了呢！\n🌡️ 当前温度：${mockWeather.temp}°C\n☔ 天气：${mockWeather.text}\n💨 风力：${mockWeather.windDir}${mockWeather.windScale}级\n💧 湿度：${mockWeather.humidity}%\n☂️ 一定要带伞哦！别淋湿了，我会心疼的~ 💕`,
+      default: `🌈 早安我的女孩！新的一天开始啦~\n📍 地区：${mockLocation}\n🌡️ 当前温度：${mockWeather.temp}°C\n🌤️ 天气：${mockWeather.text}\n💨 风力：${mockWeather.windDir}${mockWeather.windScale}级\n💧 湿度：${mockWeather.humidity}%\n✨ 今天也要元气满满哦！加油！💪💕`,
+    };
+  }
+
   // 替换模板中的变量
   static replaceTemplateVariables(template, weatherData, target, locationName) {
     const { temp, text, windDir, windScale, humidity } = weatherData;
-    
-    // 根据target确定昵称
     const nickname = target === '小菲' ? '我的小公主' : '亲爱的';
-    
-    // 地区名称
     const location = locationName || (target === '小菲' ? '浙江省湖州市德清县' : '浙江省湖州市吴兴区');
     
     return template
@@ -67,6 +132,25 @@ class WeatherPushService {
       .replace(/{windScale}/g, windScale)
       .replace(/{humidity}/g, humidity)
       .replace(/{location}/g, location);
+  }
+
+  // 预览模板渲染效果
+  static previewTemplate(template, target = '小菲', locationName = '浙江省湖州市德清县') {
+    if (!template || !template.trim()) {
+      return { title: '', body: '', error: '模板内容为空' };
+    }
+    try {
+      const rendered = this.replaceTemplateVariables(template, this.MOCK_WEATHER, target, locationName);
+      const lines = rendered.split('\n');
+      return {
+        title: lines[0],
+        body: lines.slice(1).join('\n'),
+        fullText: rendered,
+        error: null,
+      };
+    } catch (e) {
+      return { title: '', body: '', error: '模板渲染失败: ' + e.message };
+    }
   }
 
   // 可爱的天气消息模板
@@ -107,7 +191,7 @@ class WeatherPushService {
   }
 
   // 获取城市天气信息（使用经纬度）
-  static async getWeather(latitude = 30.8703, longitude = 120.1094) {
+  static async getWeather(latitude = 30.8575, longitude = 120.1255) {
     const startTime = Date.now();
     try {
       if (!WEATHER_API_KEY) {
@@ -204,8 +288,8 @@ class WeatherPushService {
       }
       
       // 获取天气信息：优先使用订阅中的经纬度，否则使用默认值
-      const lat = latitude || (target === '小菲' ? 30.5333 : 30.8703);
-      const lon = longitude || (target === '小菲' ? 120.0833 : 120.1094);
+      const lat = latitude || (target === '小菲' ? 30.5425 : 30.8575);
+      const lon = longitude || (target === '小菲' ? 119.9774 : 120.1255);
       
       loggerHelper.logBusinessProcess(
         'WeatherPush',
@@ -274,14 +358,14 @@ class WeatherPushService {
           }
         };
 
-        const req = https.request(barkUrl, options, (res) => {
+        const req = https.request(barkUrl, options, async (res) => {
           let data = '';
           
           res.on('data', (chunk) => {
             data += chunk;
           });
           
-          res.on('end', () => {
+          res.on('end', async () => {
             const duration = Date.now() - startTime;
             
             if (res.statusCode === 200) {
@@ -294,6 +378,22 @@ class WeatherPushService {
                   responseSize: data.length
                 }
               );
+
+              // 记录推送历史
+              try {
+                await PushHistory.create({
+                  title: title,
+                  body: body,
+                  target: target,
+                  device_key: device_key,
+                  sound: 'bell',
+                  status: 'success',
+                  push_type: 'weather',
+                });
+              } catch (historyErr) {
+                loggerHelper.logError('记录天气推送历史失败', historyErr);
+              }
+
               resolve(true);
             } else {
               loggerHelper.logError(
@@ -301,13 +401,44 @@ class WeatherPushService {
                 new Error(data),
                 ['检查Bark服务是否正常', '验证device_key是否正确']
               );
+
+              // 记录失败的推送历史
+              try {
+                await PushHistory.create({
+                  title: title,
+                  body: body,
+                  target: target,
+                  device_key: device_key,
+                  sound: 'bell',
+                  status: 'failed',
+                  push_type: 'weather',
+                });
+              } catch (historyErr) {
+                loggerHelper.logError('记录天气推送历史失败', historyErr);
+              }
+
               resolve(false);
             }
           });
         });
 
-        req.on('error', (error) => {
+        req.on('error', async (error) => {
           loggerHelper.logError('Bark请求失败', error);
+
+          try {
+            await PushHistory.create({
+              title: title,
+              body: body,
+              target: target,
+              device_key: device_key,
+              sound: 'bell',
+              status: 'failed',
+              push_type: 'weather',
+            });
+          } catch (historyErr) {
+            loggerHelper.logError('记录天气推送历史失败', historyErr);
+          }
+
           resolve(false);
         });
 
@@ -447,7 +578,7 @@ class WeatherPushService {
         results: results
       };
     } catch (error) {
-      logger.error('Trigger weather push error:', error);
+      loggerHelper.logError('手动触发天气推送失败', error);
       return {
         success: false,
         message: 'Failed to trigger weather push',

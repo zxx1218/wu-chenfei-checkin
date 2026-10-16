@@ -80,7 +80,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const startTime = Date.now();
   try {
-    const { target, device_key, push_time, enabled, message_template, push_type } = req.body;
+    const { target, device_key, push_time, enabled, message_template, push_type, location_name, latitude, longitude } = req.body;
     
     if (!target || !device_key) {
       loggerHelper.logBusinessProcess(
@@ -99,6 +99,9 @@ router.post('/', async (req, res) => {
         target,
         push_time: push_time || '07:00',
         push_type: push_type || 'weather',
+        location_name: location_name || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
         hasTemplate: !!message_template
       }
     );
@@ -109,7 +112,10 @@ router.post('/', async (req, res) => {
       push_time: push_time || '07:00',
       enabled: enabled !== undefined ? enabled : 1,
       message_template: message_template || null,
-      push_type: push_type || 'weather'
+      push_type: push_type || 'weather',
+      location_name: location_name || null,
+      latitude: latitude !== undefined ? latitude : null,
+      longitude: longitude !== undefined ? longitude : null
     });
     
     loggerHelper.logDatabaseOperation(
@@ -131,12 +137,18 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const startTime = Date.now();
   try {
-    const { target, device_key, push_time, enabled, message_template, push_type } = req.body;
+    const { target, device_key, push_time, enabled, message_template, push_type, location_name, latitude, longitude } = req.body;
     
     loggerHelper.logBusinessProcess(
       'WeatherPushSubscription',
       '接收更新请求',
-      { id: req.params.id, fields: Object.keys(req.body) }
+      { 
+        id: req.params.id, 
+        fields: Object.keys(req.body),
+        location_name: location_name || null,
+        latitude: latitude || null,
+        longitude: longitude || null
+      }
     );
     
     const success = await WeatherPushSubscription.update(req.params.id, {
@@ -145,7 +157,10 @@ router.put('/:id', async (req, res) => {
       push_time,
       enabled,
       message_template: message_template || null,
-      push_type: push_type || 'weather'
+      push_type: push_type || 'weather',
+      location_name: location_name || null,
+      latitude: latitude !== undefined ? latitude : null,
+      longitude: longitude !== undefined ? longitude : null
     });
     
     if (!success) {
@@ -240,6 +255,32 @@ router.post('/trigger', async (req, res) => {
     }
   } catch (error) {
     loggerHelper.logError('手动触发天气推送失败', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 预览模板渲染效果
+router.post('/preview', (req, res) => {
+  try {
+    const { template, target, location_name } = req.body;
+    const result = WeatherPushService.previewTemplate(template, target, location_name);
+    res.json({ data: result });
+  } catch (error) {
+    loggerHelper.logError('模板预览失败', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 获取预置模板列表和默认模板
+router.get('/presets', (req, res) => {
+  try {
+    res.json({ 
+      data: WeatherPushService.PRESET_TEMPLATES,
+      variables: WeatherPushService.TEMPLATE_VARIABLES,
+      defaultTemplates: WeatherPushService.getDefaultTemplates(),
+    });
+  } catch (error) {
+    loggerHelper.logError('获取预置模板失败', error);
     res.status(500).json({ error: error.message });
   }
 });

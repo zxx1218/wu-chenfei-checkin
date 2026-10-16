@@ -28,6 +28,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// 根据日期获取记录（必须在 /:id 之前，否则 "date" 会被当作 id 匹配）
+router.get('/date/:date', async (req, res) => {
+  const startTime = Date.now();
+  try {
+    const records = await MilkteaRecord.findByDate(req.params.date);
+
+    loggerHelper.logDatabaseOperation(
+      'FIND',
+      'milktea_records',
+      { date: req.params.date },
+      { success: true, count: records.length },
+      startTime
+    );
+
+    res.json({ data: records });
+  } catch (error) {
+    loggerHelper.logError(`根据日期 ${req.params.date} 获取奶茶记录失败`, error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 根据ID获取单个记录（包含图片）
 router.get('/:id', async (req, res) => {
   const startTime = Date.now();
@@ -200,27 +221,6 @@ router.delete('/:id', async (req, res) => {
       '确认记录ID是否正确',
       '检查是否有外键约束阻止删除'
     ]);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 根据日期获取记录
-router.get('/date/:date', async (req, res) => {
-  const startTime = Date.now();
-  try {
-    const records = await MilkteaRecord.findByDate(req.params.date);
-    
-    loggerHelper.logDatabaseOperation(
-      'FIND',
-      'milktea_records',
-      { date: req.params.date },
-      { success: true, count: records.length },
-      startTime
-    );
-    
-    res.json({ data: records });
-  } catch (error) {
-    loggerHelper.logError(`根据日期 ${req.params.date} 获取奶茶记录失败`, error);
     res.status(500).json({ error: error.message });
   }
 });

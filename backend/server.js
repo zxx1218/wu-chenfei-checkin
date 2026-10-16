@@ -8,6 +8,7 @@ const cron = require('node-cron');
 const { initializeBucket } = require('./config/minio');
 const AutoCheckinService = require('./services/autoCheckinService');
 const loggerHelper = require('./utils/loggerHelper');
+const requestLogger = require('./middlewares/requestLogger');
 
 // 导入路由
 const bumpRecordsRouter = require('./routes/bumpRecords');
@@ -129,6 +130,28 @@ async function setupScheduledPushSchedule() {
 
 // 启动时设置定时推送任务
 setupScheduledPushSchedule();
+
+// 定时任务：每天凌晨3:00清理过期日志（保留3天）
+const { cleanupOldLogs } = require('./utils/logCleanup');
+cron.schedule('0 3 * * *', async () => {
+  loggerHelper.logScheduledTask('LogCleanup', {}, 'start');
+  const result = await cleanupOldLogs();
+  loggerHelper.logScheduledTask('LogCleanup', result, 'end');
+}, {
+  timezone: 'Asia/Shanghai'
+});
+
+loggerHelper.logBusinessProcess(
+  'CronJob',
+  '注册定时任务',
+  { 
+    task: 'log-cleanup',
+    schedule: '0 3 * * *',
+    timezone: 'Asia/Shanghai',
+    description: '每天凌晨3:00清理超过3天的日志文件'
+  },
+  'info'
+);
 
 // CORS配置 - 修复安全问题
 const corsOptions = {

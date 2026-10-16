@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { barkApi } from '@/lib/barkApi';
 import { pushHistoryApi } from '@/lib/api';
 import { 
@@ -176,11 +176,7 @@ const PushFun = () => {
     }
 
     if (!target) {
-      toast({
-        title: '⚠️ 请选择接收人',
-        description: '先选择要发送给谁哦~',
-        variant: 'destructive'
-      });
+      toast('先选择要发送给谁哦~', { description: '⚠️ 请选择接收人' });
       return;
     }
 
@@ -210,13 +206,9 @@ const PushFun = () => {
           reply_to_id: replyTo?.id || null
         });
 
-        toast({
-          title: '✅ 发送成功',
-          description: replyTo 
+        toast.success(replyTo 
             ? `已回复给 ${target} 💕` 
-            : `已向 ${target} 发送消息 💕`,
-          className: 'bg-blue-50 border-blue-200 text-blue-800'
-        });
+            : `已向 ${target} 发送消息 💕`, { description: '✅ 发送成功' });
 
         // 重新加载历史记录
         fetchPushHistory();
@@ -226,19 +218,11 @@ const PushFun = () => {
         setCustomBody('');
         setReplyingTo(null);
       } else {
-        toast({
-          title: '❌ 发送失败',
-          description: '推送服务暂时不可用，请稍后重试',
-          variant: 'destructive'
-        });
+        toast.error('推送服务暂时不可用，请稍后重试', { description: '❌ 发送失败' });
       }
     } catch (error) {
       console.error('推送失败:', error);
-      toast({
-        title: '❌ 推送失败',
-        description: '网络错误，请检查网络连接',
-        variant: 'destructive'
-      });
+      toast.error('网络错误，请检查网络连接', { description: '❌ 推送失败' });
     } finally {
       setSending(false);
     }
@@ -246,11 +230,7 @@ const PushFun = () => {
 
   const handleSendCustomMessage = () => {
     if (!customTitle.trim() || !customBody.trim()) {
-      toast({
-        title: '⚠️ 请填写完整',
-        description: '标题和内容都不能为空哦~',
-        variant: 'destructive'
-      });
+      toast('标题和内容都不能为空哦~', { description: '⚠️ 请填写完整' });
       return;
     }
     handleSendPush({ title: customTitle, body: customBody }, replyingTo || undefined);

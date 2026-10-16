@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { DoiRecord, PartnerReview } from '@/hooks/useDoiRecords';
 import DoiRatingSelector from './DoiRatingSelector'; // 导入评价选择器
 
@@ -71,10 +71,10 @@ const DoiReviewDialog = ({ record, open, onOpenChange, onSave }: Props) => {
       doiRating: doiRating || undefined, // 添加本次体验评价
     });
     if (ok) {
-      toast({ title: '评价已提交 💌', description: '甜蜜反馈已记录~' });
+      toast.success('甜蜜反馈已记录~', { description: '评价已提交 💌' });
       onOpenChange(false);
     } else {
-      toast({ title: '保存失败', variant: 'destructive' });
+      toast.error('保存失败，请稍后重试');
     }
   };
 

@@ -1,5 +1,6 @@
 const { promisePool } = require('../config/db');
 const { v4: uuidv4 } = require('uuid');
+const loggerHelper = require('../utils/loggerHelper');
 
 // 辅助函数：将各种值转换为布尔值
 const convertToBoolean = (value) => {
@@ -20,7 +21,7 @@ const formatDateForMySQL = (dateValue) => {
   if (!dateValue) return null;
   const date = new Date(dateValue);
   if (isNaN(date.getTime())) {
-    console.error(`Invalid date provided to formatDateForMySQL: ${dateValue}`);
+    loggerHelper.logBusinessProcess('DoiRecord', '无效的日期值', { dateValue }, 'warn');
     return null;
   }
   const year = date.getFullYear();
@@ -118,6 +119,14 @@ class DoiRecord {
       [id]
     );
     return result.affectedRows > 0;
+  }
+
+  static async findByDate(date) {
+    const [rows] = await promisePool.query(
+      'SELECT * FROM doi_records WHERE date = ?',
+      [date]
+    );
+    return rows;
   }
 }
 

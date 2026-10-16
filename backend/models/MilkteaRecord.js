@@ -1,5 +1,6 @@
 const { promisePool } = require('../config/db');
 const { v4: uuidv4 } = require('uuid');
+const loggerHelper = require('../utils/loggerHelper');
 
 class MilkteaRecord {
   static async findAll() {
@@ -74,8 +75,6 @@ class MilkteaRecord {
   // 删除指定日期和饮用者的"今日很乖"记录
   static async deleteNoMilkteaRecordForPerson(date, drinker) {
     try {
-      console.log(`Deleting no_milktea record for ${drinker} on ${date}`);
-      
       const [result] = await promisePool.query(
         `DELETE FROM milktea_records 
          WHERE date = ? AND type = 'no_milktea' AND drinker = ?`,
@@ -83,14 +82,20 @@ class MilkteaRecord {
       );
       
       if (result.affectedRows > 0) {
-        console.log(`Deleted ${result.affectedRows} no_milktea record(s) for ${drinker} on ${date}`);
-      } else {
-        console.log(`No no_milktea record found for ${drinker} on ${date}`);
+        loggerHelper.logDatabaseOperation(
+          'DELETE',
+          'milktea_records',
+          { date, drinker, type: 'no_milktea' },
+          { success: true, deletedRows: result.affectedRows }
+        );
       }
       
       return result.affectedRows;
     } catch (error) {
-      console.error('Error deleting no_milktea record:', error);
+      loggerHelper.logError('删除今日很乖记录失败', error, [
+        `date: ${date}`,
+        `drinker: ${drinker}`
+      ]);
       throw error;
     }
   }

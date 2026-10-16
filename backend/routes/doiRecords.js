@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const DoiRecord = require('../models/DoiRecord');
-const { upload, extractVideoUrl } = require('../middlewares/videoUpload');
+const { upload, extractVideoUrl, deleteVideoFromMinio } = require('../middlewares/videoUpload');
 const loggerHelper = require('../utils/loggerHelper');
 
 // 获取所有DOI记录
@@ -22,6 +22,27 @@ router.get('/', async (req, res) => {
   } catch (error) {
     loggerHelper.logError('获取DOI记录失败', error);
     res.status(500).json({ error: '获取DOI记录失败' });
+  }
+});
+
+// 根据日期获取DOI记录（必须在 /:id 之前，否则 "date" 会被当作 id 匹配）
+router.get('/date/:date', async (req, res) => {
+  const startTime = Date.now();
+  try {
+    const records = await DoiRecord.findByDate(req.params.date);
+
+    loggerHelper.logDatabaseOperation(
+      'FIND',
+      'doi_records',
+      { date: req.params.date },
+      { success: true, count: records.length },
+      startTime
+    );
+
+    res.json({ data: records });
+  } catch (error) {
+    loggerHelper.logError(`根据日期 ${req.params.date} 获取DOI记录失败`, error);
+    res.status(500).json({ error: '根据日期获取DOI记录失败' });
   }
 });
 
@@ -96,41 +117,36 @@ router.post('/', upload.single('video'), extractVideoUrl, async (req, res) => {
   }
 });
 
-// 更新DOI记录（支持视频上传）
+// 更新DOI记录（支持视频上传，自动清理旧视频）
 router.put('/:id', upload.single('video'), extractVideoUrl, async (req, res) => {
   const startTime = Date.now();
   try {
-    // 将上传的视频URL合并到请求体中
     const updateData = {
       ...req.body,
-      video_url: req.body.video_url || undefined // 如果没有新上传的视频，则不更新此字段
+      video_url: req.body.video_url || undefined,
     };
-    
-    loggerHelper.logBusinessProcess(
-      'DoiRecord',
-      '接收更新请求',
-      { id: req.params.id, fields: Object.keys(updateData) }
-    );
-    
+
+    loggerHelper.logBusinessProcess('DoiRecord', '接收更新请求', {
+      id: req.params.id,
+      fields: Object.keys(updateData),
+      hasNewVideo: !!req.body.video_url,
+    });
+
+    // 如果上传了新视频，删除旧视频
+    if (req.body.video_url && req.file) {
+      const existing = await DoiRecord.findById(req.params.id);
+      if (existing?.video_url && existing.video_url !== req.body.video_url) {
+        await deleteVideoFromMinio(existing.video_url);
+      }
+    }
+
     const record = await DoiRecord.update(req.params.id, updateData);
     if (!record) {
-      loggerHelper.logBusinessProcess(
-        'DoiRecord',
-        '更新记录未找到',
-        { id: req.params.id },
-        'warn'
-      );
+      loggerHelper.logBusinessProcess('DoiRecord', '更新记录未找到', { id: req.params.id }, 'warn');
       return res.status(404).json({ error: '记录未找到' });
     }
-    
-    loggerHelper.logDatabaseOperation(
-      'UPDATE',
-      'doi_records',
-      { id: req.params.id, ...updateData },
-      { success: true, data: record },
-      startTime
-    );
-    
+
+    loggerHelper.logDatabaseOperation('UPDATE', 'doi_records', { id: req.params.id, ...updateData }, { success: true, data: record }, startTime);
     res.json({ data: record });
   } catch (error) {
     loggerHelper.logError(`更新DOI记录 ${req.params.id} 失败`, error);
@@ -138,60 +154,34 @@ router.put('/:id', upload.single('video'), extractVideoUrl, async (req, res) => 
   }
 });
 
-// 删除DOI记录
+// 删除DOI记录（同时清理MinIO中的视频文件）
 router.delete('/:id', async (req, res) => {
   const startTime = Date.now();
   try {
-    loggerHelper.logBusinessProcess(
-      'DoiRecord',
-      '接收删除请求',
-      { id: req.params.id }
-    );
-    
-    const success = await DoiRecord.delete(req.params.id);
-    if (!success) {
-      loggerHelper.logBusinessProcess(
-        'DoiRecord',
-        '删除记录未找到',
-        { id: req.params.id },
-        'warn'
-      );
+    loggerHelper.logBusinessProcess('DoiRecord', '接收删除请求', { id: req.params.id });
+
+    // 先查询记录，获取视频URL以便清理
+    const existing = await DoiRecord.findById(req.params.id);
+    if (!existing) {
+      loggerHelper.logBusinessProcess('DoiRecord', '删除记录未找到', { id: req.params.id }, 'warn');
       return res.status(404).json({ error: '记录未找到' });
     }
-    
-    loggerHelper.logDatabaseOperation(
-      'DELETE',
-      'doi_records',
-      { id: req.params.id },
-      { success: true },
-      startTime
-    );
-    
+
+    const success = await DoiRecord.delete(req.params.id);
+    if (!success) {
+      return res.status(500).json({ error: '删除失败' });
+    }
+
+    // 删除关联的MinIO视频文件
+    if (existing.video_url) {
+      await deleteVideoFromMinio(existing.video_url);
+    }
+
+    loggerHelper.logDatabaseOperation('DELETE', 'doi_records', { id: req.params.id }, { success: true }, startTime);
     res.json({ message: '记录删除成功' });
   } catch (error) {
     loggerHelper.logError(`删除DOI记录 ${req.params.id} 失败`, error);
     res.status(500).json({ error: '删除DOI记录失败' });
-  }
-});
-
-// 根据日期获取DOI记录
-router.get('/date/:date', async (req, res) => {
-  const startTime = Date.now();
-  try {
-    const records = await DoiRecord.findByDate(req.params.date);
-    
-    loggerHelper.logDatabaseOperation(
-      'FIND',
-      'doi_records',
-      { date: req.params.date },
-      { success: true, count: records.length },
-      startTime
-    );
-    
-    res.json({ data: records });
-  } catch (error) {
-    loggerHelper.logError(`根据日期 ${req.params.date} 获取DOI记录失败`, error);
-    res.status(500).json({ error: '根据日期获取DOI记录失败' });
   }
 });
 

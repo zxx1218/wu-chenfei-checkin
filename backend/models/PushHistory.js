@@ -19,14 +19,17 @@ class PushHistory {
 
   static async create(data) {
     const id = uuidv4();
-    const { title, body, target, device_key, sound, status = 'success', reply_to_id = null } = data;
-    
+    const {
+      title, body, target, device_key, sound,
+      status = 'success', push_type = 'manual', reply_to_id = null
+    } = data;
+
     const [result] = await promisePool.query(
-      `INSERT INTO push_history (id, title, body, target, device_key, sound, status, reply_to_id) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, title, body, target, device_key, sound, status, reply_to_id]
+      `INSERT INTO push_history (id, title, body, target, device_key, sound, status, push_type, reply_to_id) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, title, body, target, device_key, sound, status, push_type, reply_to_id]
     );
-    
+
     return { id, ...data };
   }
 
@@ -35,7 +38,6 @@ class PushHistory {
       'DELETE FROM push_history WHERE id = ?',
       [id]
     );
-    
     return result.affectedRows > 0;
   }
 
@@ -51,6 +53,14 @@ class PushHistory {
     const [rows] = await promisePool.query(
       'SELECT * FROM push_history ORDER BY created_at DESC LIMIT ?',
       [limit]
+    );
+    return rows;
+  }
+
+  static async findByType(pushType, limit = 100) {
+    const [rows] = await promisePool.query(
+      'SELECT * FROM push_history WHERE push_type = ? ORDER BY created_at DESC LIMIT ?',
+      [pushType, limit]
     );
     return rows;
   }
