@@ -17,6 +17,7 @@ const milkteaRecordsRouter = require('./routes/milkteaRecords');
 const userSettingsRouter = require('./routes/userSettings');
 const pushHistoryRouter = require('./routes/pushHistory');
 const weatherPushSubscriptionRouter = require('./routes/weatherPushSubscription');
+const incomePushRouter = require('./routes/incomePush');
 
 const app = express();
 const PORT = process.env.PORT || 20010;
@@ -131,6 +132,40 @@ async function setupScheduledPushSchedule() {
 // 启动时设置定时推送任务
 setupScheduledPushSchedule();
 
+// 动态设置收入推送定时任务
+async function setupIncomePushSchedule() {
+  try {
+    const IncomePushConfig = require('./models/IncomePushConfig');
+    const configs = await IncomePushConfig.findEnabled();
+
+    if (configs.length > 0) {
+      const pushTimes = [...new Set(configs.map(c => c.push_time))];
+
+      pushTimes.forEach(pushTime => {
+        const [hour, minute] = pushTime.split(':').map(Number);
+        const cronExpression = `${minute} ${hour} * * *`;
+
+        cron.schedule(cronExpression, async () => {
+          loggerHelper.logScheduledTask(`IncomePush_${pushTime}`, {}, 'start');
+          const IncomePushService = require('./services/IncomePushService');
+          const result = await IncomePushService.executeDailyPush();
+          loggerHelper.logScheduledTask(`IncomePush_${pushTime}`, result, 'end');
+        }, {
+          timezone: 'Asia/Shanghai'
+        });
+
+        loggerHelper.logBusinessProcess('CronJob', '注册收入推送定时任务', {
+          pushTime, cronExpression, timezone: 'Asia/Shanghai'
+        }, 'info');
+      });
+    }
+  } catch (error) {
+    loggerHelper.logError('设置收入推送定时任务失败', error);
+  }
+}
+
+setupIncomePushSchedule();
+
 // 定时任务：每天凌晨3:00清理过期日志（保留3天）
 const { cleanupOldLogs } = require('./utils/logCleanup');
 cron.schedule('0 3 * * *', async () => {
@@ -192,6 +227,7 @@ app.use('/api/milktea-records', milkteaRecordsRouter);
 app.use('/api/user-settings', userSettingsRouter);
 app.use('/api/push-history', pushHistoryRouter);
 app.use('/api/weather-push-subscription', weatherPushSubscriptionRouter);
+app.use('/api/income-push', incomePushRouter);
 
 // 根路径
 app.get('/', (req, res) => {

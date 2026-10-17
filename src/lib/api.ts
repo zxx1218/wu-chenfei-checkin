@@ -111,3 +111,16 @@ export const weatherPushApi = {
     axios.post(`${API_BASE_URL}/weather-push-subscription/preview`, { template, target, location_name }).then(res => res.data),
   getPresets: () => axios.get(`${API_BASE_URL}/weather-push-subscription/presets`).then(res => res.data),
 };
+
+// Income Push API
+export const incomePushApi = {
+  getAll: () => axios.get(`${API_BASE_URL}/income-push`).then(res => res.data),
+  getEnabled: () => axios.get(`${API_BASE_URL}/income-push/enabled`).then(res => res.data),
+  getById: (id: string) => axios.get(`${API_BASE_URL}/income-push/${id}`).then(res => res.data),
+  create: (data: any) => axios.post(`${API_BASE_URL}/income-push`, data).then(res => res.data),
+  update: (id: string, data: any) => axios.put(`${API_BASE_URL}/income-push/${id}`, data).then(res => res.data),
+  delete: (id: string) => axios.delete(`${API_BASE_URL}/income-push/${id}`).then(res => res.data),
+  trigger: (id: string) => axios.post(`${API_BASE_URL}/income-push/trigger/${id}`).then(res => res.data),
+  preview: (data: any) => axios.post(`${API_BASE_URL}/income-push/preview`, data).then(res => res.data),
+  getSalaryFields: () => axios.get(`${API_BASE_URL}/income-push/salary-fields`).then(res => res.data),
+};

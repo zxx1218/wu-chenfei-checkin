@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ScheduledPushManager } from '@/components/ScheduledPushManager';
+import { IncomePushManager } from '@/components/IncomePushManager';
 import { ArrowLeft } from 'lucide-react';
 
 const ScheduledPush = () => {
@@ -15,11 +16,14 @@ const ScheduledPush = () => {
             ⏰ 定时推送管理
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            配置每天自动推送天气消息的时间和接收人
+            配置天气消息和收入提醒的自动推送
           </p>
         </header>
 
-        <ScheduledPushManager />
+        <div className="space-y-4">
+          <ScheduledPushManager />
+          <IncomePushManager />
+        </div>
       </div>
     </div>
   );

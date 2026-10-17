@@ -142,6 +142,28 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
 
     `;
 
+    const createIncomePushConfigTable = `
+      CREATE TABLE IF NOT EXISTS income_push_config (
+        id CHAR(36) NOT NULL PRIMARY KEY,
+        target VARCHAR(50) NOT NULL COMMENT '推送目标（zxx/小菲）',
+        device_key VARCHAR(255) DEFAULT '' COMMENT 'Bark设备key',
+        item_name VARCHAR(100) NOT NULL COMMENT '项目名称',
+        item_type VARCHAR(50) NOT NULL DEFAULT 'other' COMMENT '类型（salary/freelance/other）',
+        push_time VARCHAR(5) DEFAULT '10:00' COMMENT '推送时间',
+        push_day INT DEFAULT 15 COMMENT '推送日期（周几/每月几号）',
+        push_frequency VARCHAR(20) DEFAULT 'daily' COMMENT '推送频率（daily/weekly/monthly）',
+        amount DECIMAL(12,2) DEFAULT 0 COMMENT '金额',
+        salary_details JSON NULL COMMENT '工资明细JSON',
+        push_message TEXT NULL COMMENT '自定义推送消息模板',
+        enabled TINYINT(1) DEFAULT 1 COMMENT '是否启用',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_target (target),
+        INDEX idx_enabled (enabled),
+        INDEX idx_item_type (item_type)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收入推送配置表';
+    `;
+
     // 执行SQL语句创建表
     connection.query(createBumpRecordsTable, (err) => {
       if (err) {
@@ -196,12 +218,21 @@ connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`, (err) => {
                 }
 
                 console.log('weather_push_subscription表创建成功或已存在');
-                
-                console.log('\n数据库初始化完成！');
-                console.log('数据库名:', dbName);
-                console.log('已创建表: bump_records, doi_records, milktea_records, user_settings, push_history, weather_push_subscription');
-                
-                connection.end();
+
+                connection.query(createIncomePushConfigTable, (err) => {
+                  if (err) {
+                    console.error('创建income_push_config表失败:', err);
+                    connection.end();
+                    return;
+                  }
+
+                  console.log('income_push_config表创建成功或已存在');
+                  console.log('\n数据库初始化完成！');
+                  console.log('数据库名:', dbName);
+                  console.log('已创建表: bump_records, doi_records, milktea_records, user_settings, push_history, weather_push_subscription, income_push_config');
+                  
+                  connection.end();
+                });
               });
             });
           });
