@@ -1,6 +1,7 @@
 const IncomePushConfig = require('../models/IncomePushConfig');
 const PushHistory = require('../models/PushHistory');
 const loggerHelper = require('../utils/loggerHelper');
+const HolidayUtil = require('../utils/holiday');
 const https = require('https');
 
 function getDeviceKeyByTarget(target) {
@@ -262,8 +263,17 @@ class IncomePushService {
   static async executeDailyPush() {
     const startTime = Date.now();
     try {
-      const subscriptions = await IncomePushConfig.findEnabled();
       const now = new Date();
+
+      const isHoliday = await HolidayUtil.isHoliday(now);
+      if (isHoliday) {
+        loggerHelper.logBusinessProcess('IncomePush', '今日为休息日（周末/法定节假日），跳过推送', {
+          date: now.toISOString().split('T')[0],
+        }, 'info');
+        return { success: true, message: 'Rest day, skip push' };
+      }
+
+      const subscriptions = await IncomePushConfig.findEnabled();
       const today = now.getDate();
       const dayOfWeek = now.getDay() || 7;
 
